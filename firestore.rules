@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions for authentication and authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+    
+    function isArtist() {
+      return isAuthenticated() && request.auth.token.role == 'artist';
+    }
+    
+    function isListener() {
+      return isAuthenticated() && request.auth.token.role == 'listener';
+    }
+    
+    function isSelf(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isArtistForDoc(artistId) {
+      return isAuthenticated() && request.auth.token.artistId == artistId;
+    }
+    
+    function isArtistForSong(songId) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/songs/$(songId)).data.artistId == request.auth.token.artistId;
+    }
+
+    // Users collection
+    // Users can read their own document, admins can read all
+    // Users can update their own document (limited fields)
+    // Admins can update all users
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isAdmin() || isSelf(userId) || isArtist());
+      allow create: if isAuthenticated() && isSelf(userId);
+      allow update: if isAuthenticated() && (isAdmin() || isSelf(userId));
+      allow delete: if isAdmin();
+    }
+
+    // Artists collection
+    // Public read access for marketing content
+    // Admin-only write access
+    // Artists can update their own profile
+    match /artists/{artistId} {
+      allow read: if true;
+      allow write: if isAdmin() || isArtistForDoc(artistId);
+    }
+
+    // Songs collection
+    // Public read access for streaming and search
+    // Admin-only write access
+    // Artists can update their own songs
+    match /songs/{songId} {
+      allow read: if true;
+      allow write: if isAdmin() || isArtistForSong(songId);
+    }
+
+    // Purchases ledger (read-only for users, write-only for system)
+    // Users can read their own purchases
+    // Admins can read all purchases
+    // No direct writes from client - only via Cloud Functions/Workers
+    match /purchases_ledger/{purchaseId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if false; // Only backend can write
+      allow update: if false; // Immutable
+      allow delete: if isAdmin();
+    }
+
+    // Playlists collection
+    // Users can read their own playlists
+    // Users can create/update/delete their own playlists
+    match /playlists/{playlistId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Annotations collection
+    // Public read access
+    // Artists can create/update annotations for their songs
+    // Admins can delete any annotation
+    match /annotations/{annotationId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isArtist();
+      allow update: if isAuthenticated() && (isAdmin() || isArtistForSong(resource.data.songId));
+      allow delete: if isAdmin() || isArtistForSong(resource.data.songId);
+    }
+  }
+}

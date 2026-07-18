@@ -1,0 +1,336 @@
+// ============================================================================
+// DESIGN SYSTEM: CSS Custom Properties Architecture
+// Phase P003A - Design System Foundation
+// ============================================================================
+
+// ============================================================================
+// 1. COLOR SYSTEM - Dark Mode (Default)
+// ============================================================================
+
+:root {
+  // Primary Backgrounds
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #141414;
+  --bg-elevated: #1a1a1a;
+  --bg-overlay: rgba(0, 0, 0, 0.85);
+
+  // Text Colors
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --text-inverse: #000000;
+
+  // Accent Colors (Leo Bee Brand - South African inspired)
+  --accent-primary: #ffb800; // Golden yellow (SA flag)
+  --accent-secondary: #00a86b; // Green (SA flag)
+  --accent-tertiary: #e63946; // Red accent (SA flag)
+
+  // Semantic Colors
+  --color-success: #00a86b;
+  --color-warning: #ffb800;
+  --color-error: #e63946;
+  --color-info: #4a9eff;
+
+  // Border Colors
+  --border-primary: #2a2a2a;
+  --border-secondary: #333333;
+  --border-focus: #ffb800;
+
+  // Interactive States
+  --color-hover: rgba(255, 255, 255, 0.1);
+  --color-active: rgba(255, 255, 255, 0.15);
+  --color-disabled: rgba(255, 255, 255, 0.3);
+
+  // ============================================================================
+  // 2. TYPOGRAPHY SYSTEM
+  // ============================================================================
+
+  // Font Families
+  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-family-mono: 'Fira Code', 'Courier New', monospace;
+
+  // Font Sizes (using modular scale 1.25)
+  --text-xs: 0.64rem; // 10.24px
+  --text-sm: 0.8rem; // 12.8px
+  --text-base: 1rem; // 16px
+  --text-md: 1.25rem; // 20px
+  --text-lg: 1.563rem; // 25px
+  --text-xl: 1.953rem; // 31.25px
+  --text-2xl: 2.441rem; // 39px
+  --text-3xl: 3.052rem; // 48.83px
+
+  // Font Weights
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  // Line Heights
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  // Letter Spacing
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+
+  // ============================================================================
+  // 3. SPACING SYSTEM (8px base grid)
+  // ============================================================================
+
+  --space-1: 0.25rem; // 4px
+  --space-2: 0.5rem; // 8px
+  --space-3: 0.75rem; // 12px
+  --space-4: 1rem; // 16px
+  --space-5: 1.5rem; // 24px
+  --space-6: 2rem; // 32px
+  --space-7: 3rem; // 48px
+  --space-8: 4rem; // 64px
+  --space-9: 6rem; // 96px
+  --space-10: 8rem; // 128px
+
+  // ============================================================================
+  // 4. BORDER RADIUS
+  // ============================================================================
+
+  --radius-sm: 0.25rem; // 4px
+  --radius-md: 0.5rem; // 8px
+  --radius-lg: 1rem; // 16px
+  --radius-xl: 1.5rem; // 24px
+  --radius-full: 9999px;
+
+  // ============================================================================
+  // 5. SHADOWS
+  // ============================================================================
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(255, 184, 0, 0.3);
+
+  // ============================================================================
+  // 6. TRANSITIONS & ANIMATIONS
+  // ============================================================================
+
+  --transition-fast: 150ms ease;
+  --transition-base: 300ms ease;
+  --transition-slow: 500ms ease;
+  --transition-theme: 400ms ease; // For background color changes
+
+  // Easing Functions
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  // ============================================================================
+  // 7. Z-INDEX SCALE
+  // ============================================================================
+
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  // ============================================================================
+  // 8. BREAKPOINTS (for reference in media queries)
+  // ============================================================================
+
+  --breakpoint-mobile: 320px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+  --breakpoint-wide: 1440px;
+
+  // ============================================================================
+  // 9. LAYOUT
+  // ============================================================================
+
+  --max-width-sm: 640px;
+  --max-width-md: 768px;
+  --max-width-lg: 1024px;
+  --max-width-xl: 1280px;
+  --max-width-2xl: 1536px;
+
+  // Header/Player Heights
+  --header-height: 4rem;
+  --player-height: 5rem;
+
+  // ============================================================================
+  // 10. ACCESSIBILITY
+  // ============================================================================
+
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--accent-primary);
+
+  // Minimum touch target size (WCAG 2.5.5)
+  --touch-target-min: 44px;
+}
+
+// ============================================================================
+// 11. LIGHT MODE OVERRIDES
+// ============================================================================
+
+[data-theme='light'] {
+  // Primary Backgrounds
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e8e8e8;
+  --bg-elevated: #ffffff;
+  --bg-overlay: rgba(255, 255, 255, 0.95);
+
+  // Text Colors
+  --text-primary: #000000;
+  --text-secondary: #4a4a4a;
+  --text-tertiary: #737373;
+  --text-inverse: #ffffff;
+
+  // Border Colors
+  --border-primary: #d4d4d4;
+  --border-secondary: #e5e5e5;
+  --border-focus: #ffb800;
+
+  // Interactive States
+  --color-hover: rgba(0, 0, 0, 0.05);
+  --color-active: rgba(0, 0, 0, 0.1);
+  --color-disabled: rgba(0, 0, 0, 0.3);
+
+  // Shadows (lighter for light mode)
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(255, 184, 0, 0.2);
+}
+
+// ============================================================================
+// 12. HIGH CONTRAST MODE (Accessibility)
+// ============================================================================
+
+[data-theme='high-contrast'] {
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+  --bg-primary: #000000;
+  --border-primary: #ffffff;
+  --accent-primary: #ffff00;
+}
+
+// ============================================================================
+// 13. DYNAMIC BACKGROUND (Applied via ThemeService)
+// ============================================================================
+
+// These are set dynamically via JavaScript/Angular Signals
+// Default fallback values:
+:root {
+  --bg-dynamic-primary: var(--bg-primary);
+  --bg-dynamic-secondary: var(--bg-secondary);
+  --bg-dynamic-accent: var(--accent-primary);
+}
+
+// When dynamic theme is active, these get updated with extracted colors
+[data-dynamic-theme='true'] {
+  // Values injected by ThemeService
+}
+
+// ============================================================================
+// 14. GLOBAL RESET & BASE STYLES
+// ============================================================================
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+
+  // Smooth background transitions for theme changes
+  transition:
+    background-color var(--transition-theme),
+    color var(--transition-theme);
+}
+
+// ============================================================================
+// 15. FOCUS MANAGEMENT (Accessibility)
+// ============================================================================
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+// Remove default focus outline for mouse users
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// ============================================================================
+// 16. SELECTION STYLING
+// ============================================================================
+
+::selection {
+  background-color: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+// ============================================================================
+// 17. SCROLLBAR STYLING (Webkit browsers)
+// ============================================================================
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+// ============================================================================
+// 18. UTILITY CLASSES
+// ============================================================================
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

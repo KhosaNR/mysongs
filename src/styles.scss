@@ -1,0 +1,39 @@
+// ============================================================================
+// MAIN STYLES ENTRY POINT
+// Phase P003A - Design System Foundation
+// ============================================================================
+
+// ============================================================================
+// 1. DESIGN SYSTEM FOUNDATION
+// ============================================================================
+
+// CSS Custom Properties (Design Tokens)
+@import 'styles/variables';
+
+// Transition & Animation Utilities
+@import 'styles/transitions';
+
+// ============================================================================
+// 2. GLOBAL STYLES
+// ============================================================================
+
+// Additional global styles can be added here
+// Most global styles are already defined in _variables.scss
+
+// ============================================================================
+// 3. APPLICATION ENTRY POINT
+// ============================================================================
+
+// Angular app component styles
+app-root {
+  display: block;
+  min-height: 100vh;
+}
+
+// Ensure smooth theme transitions on the app container
+app-root,
+app-component {
+  transition:
+    background-color var(--transition-theme),
+    color var(--transition-theme);
+}

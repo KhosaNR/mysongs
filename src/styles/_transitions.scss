@@ -1,0 +1,264 @@
+// ============================================================================
+// DESIGN SYSTEM: Transition & Animation Utilities
+// Phase P003A - Design System Foundation
+// ============================================================================
+
+// ============================================================================
+// BACKGROUND TRANSITIONS (For dynamic theming)
+// ============================================================================
+
+// Smooth background color transition for theme changes
+@mixin theme-transition {
+  transition:
+    background-color var(--transition-theme),
+    color var(--transition-theme),
+    border-color var(--transition-theme),
+    box-shadow var(--transition-theme);
+}
+
+// Apply to elements that need smooth theme transitions
+.theme-transition {
+  @include theme-transition;
+}
+
+// ============================================================================
+// BACKGROUND GRADIENT TRANSITIONS
+// ============================================================================
+
+// For dynamic gradient backgrounds (album artwork colors)
+@mixin gradient-transition {
+  transition:
+    background var(--transition-theme),
+    background-image var(--transition-theme);
+}
+
+.gradient-transition {
+  @include gradient-transition;
+}
+
+// ============================================================================
+// STANDARD TRANSITION UTILITIES
+// ============================================================================
+
+// Fast transition (150ms) - for hover states, micro-interactions
+.transition-fast {
+  transition: all var(--transition-fast);
+}
+
+// Base transition (300ms) - for most UI interactions
+.transition-base {
+  transition: all var(--transition-base);
+}
+
+// Slow transition (500ms) - for complex animations
+.transition-slow {
+  transition: all var(--transition-slow);
+}
+
+// ============================================================================
+// PROPERTY-SPECIFIC TRANSITIONS
+// ============================================================================
+
+// Opacity only (GPU accelerated)
+.transition-opacity {
+  transition: opacity var(--transition-base);
+}
+
+// Transform only (GPU accelerated)
+.transition-transform {
+  transition: transform var(--transition-base);
+}
+
+// Shadow only
+.transition-shadow {
+  transition: box-shadow var(--transition-base);
+}
+
+// Color only
+.transition-color {
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+// ============================================================================
+// EASING FUNCTIONS
+// ============================================================================
+
+.ease-in {
+  transition-timing-function: var(--ease-in);
+}
+
+.ease-out {
+  transition-timing-function: var(--ease-out);
+}
+
+.ease-in-out {
+  transition-timing-function: var(--ease-in-out);
+}
+
+// ============================================================================
+// ANIMATION KEYFRAMES
+// ============================================================================
+
+// Fade in animation
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// Fade out animation
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// Slide up animation
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Slide down animation
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Scale in animation
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Pulse animation (for loading states)
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Spin animation (for spinners)
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Shimmer animation (for skeleton loaders)
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// ============================================================================
+// ANIMATION UTILITY CLASSES
+// ============================================================================
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-base) var(--ease-out);
+}
+
+.animate-fade-out {
+  animation: fadeOut var(--transition-base) var(--ease-in);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-base) var(--ease-out);
+}
+
+.animate-slide-down {
+  animation: slideDown var(--transition-base) var(--ease-out);
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--transition-base) var(--ease-out);
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+}
+
+// ============================================================================
+// REDUCED MOTION (Accessibility)
+// ============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ============================================================================
+// PERFORMANCE OPTIMIZATIONS
+// ============================================================================
+
+// Force GPU acceleration for smooth animations
+.gpu-accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+// Optimize for animations
+.animate-optimized {
+  will-change: opacity, transform;
+  transform: translateZ(0);
+}

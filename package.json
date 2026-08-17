@@ -25,7 +25,8 @@
     "start:qa": "ng serve --configuration qa",
     "build:qa": "ng build --configuration qa",
     "firebase:channel:qa": "firebase hosting:channel:create qa && firebase hosting:channel:deploy qa",
-    "firebase:promote:qa": "firebase hosting:promote qa"
+    "firebase:promote:qa": "firebase hosting:promote qa",
+    "test:ci": "ng test --watch=false"
   },
   "lint-staged": {
     "*.ts": [

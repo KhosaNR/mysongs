@@ -9,21 +9,29 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
-  orderBy,
-  limit,
   QueryConstraint,
   DocumentData,
-  CollectionReference,
 } from '@angular/fire/firestore';
 import { ErrorHandler, Result } from '../utils/error-handler';
-import { PiiMaskPipe } from '../../shared/pipes/pii-mask.pipe';
+import { sanitizeForFirestore } from '../utils/sanitize';
 
 /**
  * Generic document data interface with artistId scoping.
  */
 export interface DocumentWithArtistId extends DocumentData {
   artistId?: string;
+}
+
+/**
+ * Optional behaviour modifiers for document create operations.
+ */
+export interface CreateOptions {
+  /**
+   * Defaults new catalog documents (songs/albums/artists) to `isDeleted: false`
+   * and `deletedAt: null` so they match the public
+   * `where('isDeleted', '==', false)` queries used across explore/search.
+   */
+  readonly softDeletable?: boolean;
 }
 
 /**
@@ -36,13 +44,13 @@ export interface DocumentWithArtistId extends DocumentData {
  * ```typescript
  * // Get all songs for an artist
  * const result = await this.dbService.getCollection('songs', {
- *   constraints: [where('artistId', '==', 'leobee_01')]
+ *   constraints: [where('artistId', '==', 'artist_01')]
  * });
  * 
  * // Create a new document with automatic artistId injection
  * const createResult = await this.dbService.create('songs', {
  *   title: 'New Track',
- *   artistId: 'leobee_01', // Automatically scoped
+ *   artistId: 'artist_01', // Automatically scoped
  *   priceZAR: 5.00
  * });
  * 
@@ -58,19 +66,24 @@ export interface DocumentWithArtistId extends DocumentData {
 export class DbService {
   private readonly firestore = inject(Firestore);
   private readonly errorHandler = inject(ErrorHandler);
-  private readonly piiMaskPipe = inject(PiiMaskPipe);
 
-  /**
-   * Signal indicating whether a database operation is in progress.
-   */
   readonly isLoading = signal<boolean>(false);
 
-  /**
-   * Signal containing the last database error message, or null if no error.
-   */
   readonly error = signal<string | null>(null);
 
-  constructor() {}
+  /**
+   * Generates a unique document ID client-side using Firestore's own auto-ID
+   * generator (no network round-trip).
+   *
+   * Application-facing identifiers (users, artists) use this opaque format so
+   * the Firebase Auth UID is never used as a primary key or exposed in public
+   * documents or URLs.
+   *
+   * @returns A 20-character opaque alphanumeric ID
+   */
+  generateId(): string {
+    return doc(collection(this.firestore, '_ids')).id;
+  }
 
   /**
    * Gets a single document by ID.
@@ -136,7 +149,7 @@ export class DbService {
    * // Get all songs for a specific artist
    * const result = await this.dbService.getCollection('songs', {
    *   constraints: [
-   *     where('artistId', '==', 'leobee_01'),
+   *     where('artistId', '==', 'artist_01'),
    *     orderBy('createdAt', 'desc'),
    *     limit(20)
    *   ]
@@ -196,7 +209,8 @@ export class DbService {
    */
   async create<T extends DocumentWithArtistId>(
     collectionPath: string,
-    data: Omit<T, 'id'>
+    data: Omit<T, 'id'>,
+    options?: CreateOptions
   ): Promise<Result<string>> {
     this.isLoading.set(true);
     this.error.set(null);
@@ -205,9 +219,15 @@ export class DbService {
       async () => {
         const collectionRef = collection(this.firestore, collectionPath);
         const docRef = doc(collectionRef);
-        
-        await setDoc(docRef, data);
-        
+
+        const docData = sanitizeForFirestore(data) as DocumentData;
+        if (options?.softDeletable) {
+          docData['isDeleted'] = docData['isDeleted'] ?? false;
+          docData['deletedAt'] = docData['deletedAt'] ?? null;
+        }
+
+        await setDoc(docRef, docData);
+
         return docRef.id;
       },
       'create',
@@ -238,7 +258,8 @@ export class DbService {
   async createWithId<T extends DocumentWithArtistId>(
     collectionPath: string,
     documentId: string,
-    data: Omit<T, 'id'>
+    data: Omit<T, 'id'>,
+    options?: CreateOptions
   ): Promise<Result<void>> {
     this.isLoading.set(true);
     this.error.set(null);
@@ -247,8 +268,14 @@ export class DbService {
       async () => {
         const collectionRef = collection(this.firestore, collectionPath);
         const docRef = doc(collectionRef, documentId);
-        
-        await setDoc(docRef, data);
+
+        const docData = sanitizeForFirestore(data) as DocumentData;
+        if (options?.softDeletable) {
+          docData['isDeleted'] = docData['isDeleted'] ?? false;
+          docData['deletedAt'] = docData['deletedAt'] ?? null;
+        }
+
+        await setDoc(docRef, docData);
       },
       'createWithId',
       {
@@ -290,8 +317,8 @@ export class DbService {
       async () => {
         const collectionRef = collection(this.firestore, collectionPath);
         const docRef = doc(collectionRef, documentId);
-        
-        await updateDoc(docRef, data as DocumentData);
+
+        await updateDoc(docRef, sanitizeForFirestore(data) as DocumentData);
       },
       'update',
       {
@@ -348,6 +375,87 @@ export class DbService {
   }
 
   /**
+   * Soft deletes a document by setting isDeleted=true and deletedAt timestamp.
+   * The document remains in Firestore but is hidden from public views.
+   * 
+   * @param collectionPath - The collection path
+   * @param documentId - The document ID to soft delete
+   * @returns A Result indicating success or failure
+   */
+  async softDelete(
+    collectionPath: string,
+    documentId: string
+  ): Promise<Result<void>> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    const result = await this.errorHandler.execute(
+      async () => {
+        const collectionRef = collection(this.firestore, collectionPath);
+        const docRef = doc(collectionRef, documentId);
+        
+        await updateDoc(docRef, {
+          isDeleted: true,
+          deletedAt: new Date(),
+        } as DocumentData);
+      },
+      'softDelete',
+      {
+        collection: collectionPath,
+        documentId,
+      }
+    );
+
+    this.isLoading.set(false);
+
+    if (result.isFailure()) {
+      this.error.set(result.getError());
+    }
+
+    return result;
+  }
+
+  /**
+   * Restores a soft-deleted document by setting isDeleted=false and clearing deletedAt.
+   * 
+   * @param collectionPath - The collection path
+   * @param documentId - The document ID to restore
+   * @returns A Result indicating success or failure
+   */
+  async restore(
+    collectionPath: string,
+    documentId: string
+  ): Promise<Result<void>> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    const result = await this.errorHandler.execute(
+      async () => {
+        const collectionRef = collection(this.firestore, collectionPath);
+        const docRef = doc(collectionRef, documentId);
+        
+        await updateDoc(docRef, {
+          isDeleted: false,
+          deletedAt: null,
+        } as DocumentData);
+      },
+      'restore',
+      {
+        collection: collectionPath,
+        documentId,
+      }
+    );
+
+    this.isLoading.set(false);
+
+    if (result.isFailure()) {
+      this.error.set(result.getError());
+    }
+
+    return result;
+  }
+
+  /**
    * Checks if a document exists.
    * 
    * @param collectionPath - The collection path
@@ -366,7 +474,7 @@ export class DbService {
         const collectionRef = collection(this.firestore, collectionPath);
         const docRef = doc(collectionRef, documentId);
         const snapshot = await getDoc(docRef);
-        
+
         return snapshot.exists();
       },
       'exists',
@@ -385,12 +493,6 @@ export class DbService {
     return result;
   }
 
-  /**
-   * Clears the current error message.
-   * 
-   * @remarks
-   * Call this after displaying the error to the user.
-   */
   clearError(): void {
     this.error.set(null);
   }

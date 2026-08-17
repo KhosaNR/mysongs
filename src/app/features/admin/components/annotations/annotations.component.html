@@ -1,0 +1,166 @@
+<div class="annotations">
+  <div class="page-header">
+    <h2>Lyric Annotations</h2>
+    <button class="btn btn--primary" (click)="openForm()">+ Add Annotation</button>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>Add New Annotation</h3>
+
+        <form [formRoot]="annotationsForm" (submit)="submitForm()">
+          <div class="form-field">
+            <label for="songId">Song ID *</label>
+            <input
+              class="form-field__control"
+              type="text"
+              id="songId"
+              [formField]="annotationsForm.songId"
+            />
+            <app-field-errors [field]="annotationsForm.songId" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="startLine">Start Line *</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="startLine"
+                [formField]="annotationsForm.startLine"
+              />
+              <app-field-errors [field]="annotationsForm.startLine" />
+            </div>
+
+            <div class="form-field">
+              <label for="endLine">End Line *</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="endLine"
+                [formField]="annotationsForm.endLine"
+              />
+              <app-field-errors [field]="annotationsForm.endLine" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="startChar">Start Character *</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="startChar"
+                [formField]="annotationsForm.startChar"
+              />
+              <app-field-errors [field]="annotationsForm.startChar" />
+            </div>
+
+            <div class="form-field">
+              <label for="endChar">End Character *</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="endChar"
+                [formField]="annotationsForm.endChar"
+              />
+              <app-field-errors [field]="annotationsForm.endChar" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="annotationText">Annotation Text *</label>
+            <textarea
+              class="form-field__control"
+              id="annotationText"
+              [formField]="annotationsForm.annotationText"
+              rows="4"
+            ></textarea>
+            <app-field-errors [field]="annotationsForm.annotationText" />
+          </div>
+
+          <div class="form-field">
+            <label for="authorName">Author Name *</label>
+            <input
+              class="form-field__control"
+              type="text"
+              id="authorName"
+              [formField]="annotationsForm.authorName"
+            />
+            <app-field-errors [field]="annotationsForm.authorName" />
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="closeForm()"
+              [disabled]="isSubmitting()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn--primary" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Adding...' : 'Add Annotation' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="annotations-list">
+    @if (isLoading()) {
+      <div class="loading-state">Loading annotations...</div>
+    } @else if (annotations().length === 0) {
+      <div class="empty-state">
+        <p>No annotations found. Add your first annotation to get started.</p>
+      </div>
+    } @else {
+      <div class="data-table">
+        <div class="data-table__header">
+          <div class="col-song">Song ID</div>
+          <div class="col-lines">Lines</div>
+          <div class="col-author">Author</div>
+          <div class="col-status">Status</div>
+          <div class="data-table__actions">Actions</div>
+        </div>
+        @for (annotation of annotations(); track annotation.id) {
+          <div class="data-table__row">
+            <div class="col-song">{{ annotation.songId }}</div>
+            <div class="col-lines">
+              {{ annotation.startLine }}-{{ annotation.endLine }} ({{ annotation.startChar }}-{{
+                annotation.endChar
+              }})
+            </div>
+            <div class="col-author">{{ annotation.authorName }}</div>
+            <div class="col-status">
+              <span
+                class="status-badge"
+                [class.active]="annotation.isActive"
+                [class.inactive]="!annotation.isActive"
+              >
+                {{ annotation.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div class="data-table__actions">
+              <button class="btn btn--secondary btn--sm" (click)="toggleAnnotation(annotation)">
+                {{ annotation.isActive ? 'Disable' : 'Enable' }}
+              </button>
+              <button class="btn btn--danger btn--sm" (click)="deleteAnnotation(annotation)">
+                Delete
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

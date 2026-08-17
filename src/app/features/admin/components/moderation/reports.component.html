@@ -1,0 +1,26 @@
+<div class="reports">
+  <h2 class="reports__title">Moderation Reports</h2>
+  <p class="reports__subtitle">Review user-submitted reports on artist content.</p>
+  @if (error()) { <app-error-banner [message]="error()!" (dismiss)="clearError()" /> }
+  @if (isLoading()) {
+    <div class="reports__loading"><app-loading-spinner size="md" aria-label="Loading reports" /></div>
+  } @else if (reports().length === 0) {
+    <div class="reports__empty"><p>No open reports.</p></div>
+  } @else {
+    <div class="reports__list">
+      @for (report of reports(); track report.id) {
+        <div class="report-card">
+          <div class="report-card__body">
+            <h3 class="report-card__artist">Artist ID: {{ report.artistId }}</h3>
+            <span class="report-card__reason">{{ report.reason }}</span>
+            @if (report.details) { <p class="report-card__details">{{ report.details }}</p> }
+          </div>
+          <div class="report-card__actions">
+            <button type="button" class="btn btn--primary" [disabled]="busyReportId() === report.id" (click)="resolve(report.id!, true)">Resolve</button>
+            <button type="button" class="btn btn--secondary" [disabled]="busyReportId() === report.id" (click)="resolve(report.id!, false)">Dismiss</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

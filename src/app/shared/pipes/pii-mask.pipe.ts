@@ -1,4 +1,4 @@
-import { Pipe, type PipeTransform } from '@angular/core';
+import { Pipe, type PipeTransform, Injectable } from '@angular/core';
 
 /**
  * Masks personally identifiable information (PII) to comply with POPIA regulations.
@@ -13,11 +13,15 @@ import { Pipe, type PipeTransform } from '@angular/core';
  * 
  * @example
  * // Usage in services
- * this.logger.info(`User login: ${email | piiMask}`);
+ * this.logger.info(`User login: ${this.piiMaskPipe.transform(email)}`);
  */
 @Pipe({
   name: 'piiMask',
   standalone: true,
+  pure: true,
+})
+@Injectable({
+  providedIn: 'root',
 })
 export class PiiMaskPipe implements PipeTransform {
   /**

@@ -1,0 +1,46 @@
+<header class="site-header">
+  <div class="site-header__inner">
+    <button
+      type="button"
+      class="site-header__hamburger"
+      (click)="onMenuToggle()"
+      aria-label="Toggle navigation sidebar"
+      aria-controls="site-sidebar"
+      [attr.aria-expanded]="isSidebarOpen()"
+    >
+      <span class="material-icons" aria-hidden="true">menu</span>
+    </button>
+
+    <a class="site-header__logo" routerLink="/" aria-label="My Songs home">
+      <app-brand-logo />
+      <span>My Songs</span>
+    </a>
+
+    <div class="site-header__search">
+      <app-search-input
+        placeholder="Search artists, tracks, lyrics..."
+        ariaLabel="Search"
+        (searched)="onSearch($event)"
+      />
+    </div>
+
+    <nav class="site-header__actions" aria-label="Account">
+      @if (currentUser()) {
+        @if (isArtist()) {
+          <a class="site-header__btn site-header__btn--outline" routerLink="/artist"> Dashboard </a>
+        } @else if (isAdmin()) {
+          <a class="site-header__btn site-header__btn--outline" routerLink="/admin"> Admin </a>
+        }
+        <span
+          class="site-header__user-name"
+          aria-label="Logged in as {{ currentUser()?.displayName || currentUser()?.email }}"
+        >
+          {{ currentUser()?.displayName || currentUser()?.email }}
+        </span>
+      } @else {
+        <a class="site-header__btn site-header__btn--outline" routerLink="/auth/login"> Login </a>
+        <a class="site-header__btn site-header__btn--solid" routerLink="/auth/sign-up"> Sign Up </a>
+      }
+    </nav>
+  </div>
+</header>

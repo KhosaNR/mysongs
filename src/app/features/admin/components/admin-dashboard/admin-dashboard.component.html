@@ -1,0 +1,131 @@
+<div class="dashboard-content">
+  @if (isLoading()) {
+    <div class="loading-state">Loading dashboard data...</div>
+  } @else if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  } @else {
+    <div class="stats-overview">
+      <h3>{{ dashboardTitle() }}</h3>
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-number">{{ summaryStats().totalStreams | number }}</span>
+          <span class="stat-label">Total Streams</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ summaryStats().totalPurchases | number }}</span>
+          <span class="stat-label">Purchases</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ formatCurrency(summaryStats().totalRevenue) }}</span>
+          <span class="stat-label">Revenue</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ summaryStats().totalVisitors | number }}</span>
+          <span class="stat-label">Visitors</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="period-selector">
+      <label for="timePeriod">Time Period:</label>
+      <select id="timePeriod" class="form-field__control" [value]="selectedPeriod()" (change)="onPeriodChange($any($event.target).value)">
+        <option value="7d">Last 7 days</option>
+        <option value="30d">Last 30 days</option>
+        <option value="90d">Last 90 days</option>
+        <option value="1y">Last year</option>
+      </select>
+    </div>
+
+    @if (streamingStats().length > 0) {
+      <div class="analytics-section">
+        <h3>Top Streaming Tracks</h3>
+        <div class="analytics-table">
+          <div class="data-table__header">
+            <div class="col-track">Track</div>
+            <div class="col-streams">Streams</div>
+            <div class="col-last">Last Streamed</div>
+          </div>
+          @for (stat of streamingStats(); track stat.trackId) {
+            <div class="data-table__row">
+              <div class="col-track">{{ stat.trackTitle }}</div>
+              <div class="col-streams">{{ formatNumber(stat.streamCount) }}</div>
+              <div class="col-last">{{ stat.lastStreamed | date:'short' }}</div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (salesMetrics().length > 0) {
+      <div class="analytics-section">
+        <h3>Sales Performance</h3>
+        <div class="sales-grid">
+          @for (metric of salesMetrics(); track metric.period) {
+            <div class="sales-card">
+              <h4>{{ metric.period }}</h4>
+              <div class="sales-stat">
+                <span class="sales-label">Total Sales</span>
+                <span class="sales-value">{{ formatNumber(metric.purchaseCount) }}</span>
+              </div>
+              <div class="sales-stat">
+                <span class="sales-label">Revenue</span>
+                <span class="sales-value">{{ formatCurrency(metric.totalRevenue) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (visitorAnalytics()) {
+      <div class="analytics-section">
+        <h3>Visitor Analytics</h3>
+        <div class="visitor-grid">
+          <div class="visitor-card">
+            <h4>Total Visitors</h4>
+            <p class="visitor-number">{{ formatNumber(visitorAnalytics()!.totalVisitors) }}</p>
+          </div>
+          <div class="visitor-card">
+            <h4>Unique Visitors</h4>
+            <p class="visitor-number">{{ formatNumber(visitorAnalytics()!.uniqueVisitors) }}</p>
+          </div>
+          <div class="visitor-card">
+            <h4>Page Views</h4>
+            <p class="visitor-number">{{ formatNumber(visitorAnalytics()!.pageViews) }}</p>
+          </div>
+        </div>
+
+        @if (visitorAnalytics()!.topCountries.length > 0) {
+          <div class="analytics-subsection">
+            <h4>Top Countries</h4>
+            <div class="list-items">
+              @for (country of visitorAnalytics()!.topCountries; track country.country) {
+                <div class="list-item">
+                  <span>{{ country.country }}</span>
+                  <span>{{ formatNumber(country.count) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @if (visitorAnalytics()!.topDevices.length > 0) {
+          <div class="analytics-subsection">
+            <h4>Top Devices</h4>
+            <div class="list-items">
+              @for (device of visitorAnalytics()!.topDevices; track device.device) {
+                <div class="list-item">
+                  <span>{{ device.device }}</span>
+                  <span>{{ formatNumber(device.count) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,126 @@
+<main class="playlist-detail-page">
+  @if (isLoading()) {
+    <div class="playlist-detail-page__loading">
+      <app-loading-spinner size="lg" aria-label="Loading playlist" />
+    </div>
+  } @else if (error(); as message) {
+    <div class="error-banner">
+      <p>{{ message }}</p>
+      <button type="button" (click)="error.set(null)">×</button>
+    </div>
+    @if (isOwner()) {
+      <a class="btn btn--secondary" routerLink="/playlists">← Back to Playlists</a>
+    }
+  } @else if (playlist(); as playlist) {
+    <div class="playlist-detail">
+      <section class="playlist-detail__header">
+        <div class="playlist-detail__art">
+          <span class="material-icons" aria-hidden="true">queue_music</span>
+        </div>
+        <div class="playlist-detail__info">
+          <p class="playlist-detail__type">
+            Playlist
+            @if (playlist.isPublic) {
+              <span class="playlist-detail__badge">Public</span>
+            }
+          </p>
+
+          @if (isEditingName()) {
+            <div class="playlist-detail__rename">
+              <input
+                class="form-field__control"
+                type="text"
+                [value]="editName()"
+                (input)="onEditNameInput($event)"
+                aria-label="Playlist name"
+              />
+              <button type="button" class="btn btn--primary btn--sm" (click)="saveRename()" [disabled]="isSaving()">Save</button>
+              <button type="button" class="btn btn--secondary btn--sm" (click)="isEditingName.set(false)">Cancel</button>
+            </div>
+          } @else {
+            <h1 class="playlist-detail__title">{{ playlist.name }}</h1>
+          }
+
+          <p class="playlist-detail__meta">
+            {{ songs().length }} track{{ songs().length === 1 ? '' : 's' }}
+            @if (playlist.description) {
+              · {{ playlist.description }}
+            }
+          </p>
+
+          <div class="playlist-detail__actions">
+            <button type="button" class="btn btn--primary" (click)="playAll()" [disabled]="songs().length === 0">
+              <span class="material-icons" aria-hidden="true">play_arrow</span>
+              Play All
+            </button>
+            <button type="button" class="btn btn--secondary" (click)="openCopyDialog()" [disabled]="songs().length === 0">
+              <span class="material-icons" aria-hidden="true">playlist_add</span>
+              Copy to Playlist
+            </button>
+            @if (isOwner()) {
+              @if (!isEditingName()) {
+                <button type="button" class="btn btn--secondary" (click)="startRename()">Rename</button>
+              }
+              <button type="button" class="btn btn--secondary" (click)="togglePublic()" [disabled]="isSaving()">
+                <span class="material-icons" aria-hidden="true">{{ playlist.isPublic ? 'public_off' : 'public' }}</span>
+                {{ playlist.isPublic ? 'Make Private' : 'Make Public' }}
+              </button>
+              <button type="button" class="btn btn--danger" (click)="deletePlaylist()">Delete</button>
+            }
+          </div>
+
+          @if (isOwner() && playlist.isPublic) {
+            <div class="playlist-detail__share">
+              <input
+                class="form-field__control playlist-detail__share-input"
+                type="text"
+                [value]="shareUrl()"
+                readonly
+                aria-label="Playlist share link"
+              />
+              <button type="button" class="btn btn--secondary btn--sm" (click)="copyShareLink()">Copy Link</button>
+            </div>
+          }
+          @if (feedback(); as message) {
+            <p class="playlist-detail__feedback">{{ message }}</p>
+          }
+        </div>
+      </section>
+
+      <section class="playlist-detail__tracks">
+        @if (songs().length === 0) {
+          <app-empty-state icon="queue_music" title="This playlist is empty" description="Add tracks from songs, albums, or the player" />
+        } @else {
+          @for (item of songs(); track item.song.songId; let i = $index) {
+            <div class="playlist-detail__track">
+              <app-track-row
+                [song]="item.song"
+                [artworkUrl]="item.artworkUrl"
+                [artistName]="item.artistName"
+                [trackNumber]="i + 1"
+                (playRequested)="playAll(i)"
+              />
+              @if (isOwner()) {
+                <button
+                  type="button"
+                  class="playlist-detail__remove"
+                  (click)="removeSong(item.song.songId)"
+                  [disabled]="isSaving()"
+                  aria-label="Remove {{ item.song.title }}"
+                >
+                  <span class="material-icons" aria-hidden="true">remove_circle_outline</span>
+                </button>
+              }
+            </div>
+          }
+        }
+      </section>
+    </div>
+  }
+
+  <app-add-to-playlist-dialog
+    [isOpen]="isPlaylistDialogOpen()"
+    [songIds]="copySongIds()"
+    (closed)="closeCopyDialog()"
+  />
+</main>

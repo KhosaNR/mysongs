@@ -1,22 +1,28 @@
 /**
- * Represents an artist profile in the Leo Bee Music platform.
+ * Represents an artist profile in the My Songs platform.
  * 
  * @interface Artist
  * @example
  * ```typescript
  * const artist: Artist = {
- *   artistId: 'leobee_01',
- *   name: 'Leo Bee',
+ *   artistId: 'artist_01',
+ *   name: 'Test Artist',
  *   bio: 'South African hip-hop/rap artist from Limpopo.',
  *   country: 'South Africa',
  *   genre: 'Hip-Hop/Rap',
  *   socials: {
- *     instagram: 'https://instagram.com/leobeemusic'
+ *     instagram: 'https://instagram.com/artisthandle'
  *   },
  *   themeColors: {
- *     primary: '#ffb800',
- *     secondary: '#00a86b',
- *     accent: '#e63946',
+ *     primary: '#C5FCFB',
+ *     secondary: '#2EF8FF',
+ *     tertiary: '#e63946',
+ *     foregroundPrimary: '#000000',
+ *     foregroundSecondary: '#000000',
+ *     foregroundTertiary: '#000000',
+ *     containerPrimary: '#1E2626',
+ *     containerSecondary: '#072526',
+ *     containerTertiary: '#23090B',
  *     background: '#000000'
  *   }
  * };
@@ -25,7 +31,12 @@
 
 /**
  * Theme colors for artist/album/song branding.
- * All colors must be valid 6-digit hex codes (e.g., '#ffb800').
+ * All colors must be valid 6-digit hex codes (e.g., '#C5FCFB').
+ * 
+ * Each brand hue (primary/secondary/tertiary) carries a matching foreground
+ * (text) color and a container (tinted surface) color, mirroring the Material
+ * M3 color roles. Missing fields are defaulted by ThemeService so legacy
+ * documents (which stored the third hue as `accent`) keep working.
  */
 export interface ThemeColors {
   /**
@@ -41,10 +52,52 @@ export interface ThemeColors {
   readonly secondary: string;
 
   /**
-   * Accent color (used for CTAs, important elements).
+   * Tertiary brand color (used for CTAs, important elements).
    * @pattern ^#[0-9A-F]{6}$
    */
-  readonly accent: string;
+  readonly tertiary: string;
+
+  /**
+   * Foreground (text) color rendered on top of the primary hue.
+   * Optional — omitted values fall back to the platform defaults.
+   * @pattern ^#[0-9A-F]{6}$
+   */
+  readonly foregroundPrimary?: string;
+
+  /**
+   * Foreground (text) color rendered on top of the secondary hue.
+   * Optional — omitted values fall back to the platform defaults.
+   * @pattern ^#[0-9A-F]{6}$
+   */
+  readonly foregroundSecondary?: string;
+
+  /**
+   * Foreground (text) color rendered on top of the tertiary hue.
+   * Optional — omitted values fall back to the platform defaults.
+   * @pattern ^#[0-9A-F]{6}$
+   */
+  readonly foregroundTertiary?: string;
+
+  /**
+   * Container (tinted surface) color for the primary hue.
+   * Optional — omitted values fall back to the platform defaults.
+   * @pattern ^#[0-9A-F]{6}$
+   */
+  readonly containerPrimary?: string;
+
+  /**
+   * Container (tinted surface) color for the secondary hue.
+   * Optional — omitted values fall back to the platform defaults.
+   * @pattern ^#[0-9A-F]{6}$
+   */
+  readonly containerSecondary?: string;
+
+  /**
+   * Container (tinted surface) color for the tertiary hue.
+   * Optional — omitted values fall back to the platform defaults.
+   * @pattern ^#[0-9A-F]{6}$
+   */
+  readonly containerTertiary?: string;
 
   /**
    * Background color (optional, defaults to platform background).
@@ -55,11 +108,23 @@ export interface ThemeColors {
 
 export interface Artist {
   /**
-   * Unique identifier for the artist (e.g., 'leobee_01').
-   * @format uuid
+   * Unique opaque identifier for the artist (e.g., 'art_AbCd123456...').
+   * @format slug
    */
   readonly artistId: string;
 
+  /**
+   * Public user ID of the account that owns this artist profile
+   * (links to `users/{userId}`).
+   * @format slug
+   */
+  readonly userId?: string;
+
+  /**
+   * Moderation state of the artist profile.
+   * @default 'pending'
+   */
+  readonly artistStatus?: 'pending' | 'approved' | 'rejected' | 'suspended';
   /**
    * Display name of the artist or band.
    * @minLength 1
@@ -119,6 +184,18 @@ export interface Artist {
    * @format date-time
    */
   readonly updatedAt?: Date;
+
+  /**
+   * Soft deletion flag. When true, the artist is hidden from public views.
+   * @default false
+   */
+  readonly isDeleted?: boolean;
+
+  /**
+   * Timestamp when the artist was soft-deleted.
+   * @format date-time
+   */
+  readonly deletedAt?: Date;
 }
 
 /**

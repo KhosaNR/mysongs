@@ -249,6 +249,15 @@ export const downloadRequestSchema = object({
 });
 
 /**
+ * Upload request validator schema.
+ */
+export const uploadRequestSchema = object({
+  filename: required(string()),
+  contentType: required(string()),
+  fileSize: required(string()),
+});
+
+/**
  * Helper to add .required() to validators.
  */
 export function required<T>(validator: Validator<T>): Validator<T> {

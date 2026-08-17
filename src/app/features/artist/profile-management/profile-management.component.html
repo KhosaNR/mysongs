@@ -1,0 +1,224 @@
+<div class="profile-management">
+  <div class="page-header">
+    <h2>My Artist Profile</h2>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="clearError()">×</button>
+    </div>
+  }
+  @if (successMessage()) {
+    <div class="success-banner">
+      <p>{{ successMessage() }}</p>
+      <button type="button" (click)="clearSuccess()">×</button>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-state">Loading profile...</div>
+  } @else if (!hasArtistId()) {
+    <div class="empty-state">
+      <p>No artist ID is assigned to this account. Contact an administrator.</p>
+    </div>
+  } @else {
+    <form [formRoot]="profileForm" (submit)="saveProfile()" class="profile-form">
+      <div class="card">
+        <div class="card-header"><h3>Profile Photo</h3></div>
+        <div class="card-body photo-section">
+          <div class="photo-preview">
+            @if (photoPreview()) {
+              <img [src]="photoPreview()" alt="Profile photo preview" />
+            } @else {
+              <div class="photo-placeholder"><span class="material-icons">person</span></div>
+            }
+          </div>
+          <div class="photo-actions">
+            <input type="file" id="photoFile" accept="image/*" (change)="onPhotoSelected($event)" />
+            <label for="photoFile" class="btn btn--secondary">Choose Photo</label>
+            @if (isUploadingPhoto()) {
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
+              </div>
+              <p class="progress-text">Uploading photo... {{ uploadProgress() }}%</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Basic Information</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="name">Artist Name *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="name"
+                [formField]="profileForm.name"
+              />
+              <app-field-errors [field]="profileForm.name" />
+            </div>
+            <div class="form-field">
+              <label for="genre">Primary Genre</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="genre"
+                [formField]="profileForm.genre"
+                placeholder="Hip-Hop/Rap"
+              />
+            </div>
+            <div class="form-field">
+              <label for="country">Country</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="country"
+                [formField]="profileForm.country"
+                placeholder="South Africa"
+              />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="bio">Biography</label>
+            <textarea
+              class="form-field__control"
+              id="bio"
+              [formField]="profileForm.bio"
+              rows="5"
+              placeholder="Tell fans about yourself..."
+            ></textarea>
+            <app-field-errors [field]="profileForm.bio" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Social Links</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="website">Website</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="website"
+                [formField]="profileForm.website"
+                placeholder="https://..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="facebook">Facebook</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="facebook"
+                [formField]="profileForm.facebook"
+                placeholder="https://facebook.com/..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="instagram">Instagram</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="instagram"
+                [formField]="profileForm.instagram"
+                placeholder="https://instagram.com/..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="twitter">Twitter / X</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="twitter"
+                [formField]="profileForm.twitter"
+                placeholder="https://twitter.com/..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="youtube">YouTube</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="youtube"
+                [formField]="profileForm.youtube"
+                placeholder="https://youtube.com/@..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="spotify">Spotify</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="spotify"
+                [formField]="profileForm.spotify"
+                placeholder="https://open.spotify.com/artist/..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="appleMusic">Apple Music</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="appleMusic"
+                [formField]="profileForm.appleMusic"
+                placeholder="https://music.apple.com/artist/..."
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Brand Colors</h3></div>
+        <div class="card-body">
+          <div class="form-grid three-col">
+            <div class="form-field">
+              <label for="primaryColor">Primary</label>
+              <input
+                class="form-field__control"
+                type="color"
+                id="primaryColor"
+                [formField]="profileForm.primaryColor"
+              />
+            </div>
+            <div class="form-field">
+              <label for="secondaryColor">Secondary</label>
+              <input
+                class="form-field__control"
+                type="color"
+                id="secondaryColor"
+                [formField]="profileForm.secondaryColor"
+              />
+            </div>
+            <div class="form-field">
+              <label for="tertiaryColor">Tertiary</label>
+              <input
+                class="form-field__control"
+                type="color"
+                id="tertiaryColor"
+                [formField]="profileForm.tertiaryColor"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+          @if (isSaving()) {
+            <span class="spinner-ring"></span>
+            Saving...
+          } @else {
+            Save Profile
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>

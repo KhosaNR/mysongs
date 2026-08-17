@@ -1,0 +1,154 @@
+.site-settings {
+  padding: var(--space-4);
+  max-width: 760px;
+}
+
+.site-settings__subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.site-settings__loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.settings-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.settings-card__header {
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border-primary);
+
+  h3 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+}
+
+.settings-card__body {
+  padding: var(--space-5);
+}
+
+// Primary | Secondary | Tertiary matrix grouped by row
+// (Color / Foreground / Container), with the row label in the first column.
+.color-matrix {
+  display: flex;
+  flex-direction: column;
+}
+
+.color-matrix__header,
+.color-matrix__row {
+  display: grid;
+  grid-template-columns: 7rem repeat(3, 1fr);
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+.color-matrix__header {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.color-matrix__header-cell,
+.color-matrix__row-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+}
+
+.color-matrix__row {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-primary);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// Mobile-only caption per cell; hidden on desktop where the column headers
+// already label each hue.
+.color-matrix__caption {
+  display: none;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+}
+
+.color-matrix__cell .form-field__hint {
+  margin-top: var(--space-1);
+}
+
+.color-matrix__background {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-primary);
+  max-width: 22rem;
+}
+
+@media (max-width: 768px) {
+  .color-matrix__header,
+  .color-matrix__row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .color-matrix__header-corner,
+  .color-matrix__row-label {
+    display: none;
+  }
+
+  .color-matrix__caption {
+    display: block;
+  }
+
+  .color-matrix__background {
+    max-width: none;
+  }
+}
+
+.color-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  input[type='color'] {
+    width: var(--control-height);
+    height: var(--control-height);
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: transparent;
+    flex-shrink: 0;
+  }
+
+  .color-input__hex {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+}
+
+.settings-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+}

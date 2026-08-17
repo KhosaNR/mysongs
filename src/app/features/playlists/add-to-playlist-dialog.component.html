@@ -1,0 +1,95 @@
+<app-modal-dialog
+  [isOpen]="isOpen()"
+  title="Add to Playlist"
+  size="md"
+  (dismiss)="close()"
+>
+  @if (isOpen()) {
+    <div class="add-to-playlist">
+      @if (!currentUser()) {
+        <div class="add-to-playlist__guest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="add-to-playlist__icon">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>
+          </svg>
+          <p class="add-to-playlist__message">
+            Sign in to save tracks to your playlists.
+          </p>
+          <div class="add-to-playlist__actions">
+            <button type="button" class="btn btn--secondary" (click)="goToLogin()">Login</button>
+            <button type="button" class="btn btn--primary" (click)="goToRegister()">Sign Up</button>
+          </div>
+        </div>
+      } @else {
+        <div class="add-to-playlist__body">
+          @if (isLoading()) {
+            <div class="add-to-playlist__loading">
+              <app-loading-spinner size="sm" aria-label="Loading playlists" />
+            </div>
+          } @else {
+            @if (error(); as message) {
+              <div class="error-banner">
+                <p>{{ message }}</p>
+                <button type="button" (click)="error.set(null)">×</button>
+              </div>
+            }
+
+            @if (feedback(); as message) {
+              <div class="add-to-playlist__feedback">{{ message }}</div>
+            }
+
+            <h4 class="add-to-playlist__subtitle">Your Playlists</h4>
+            @if (playlists().length === 0) {
+              <p class="add-to-playlist__empty">You don't have any playlists yet.</p>
+            } @else {
+              <ul class="add-to-playlist__list">
+                @for (playlist of playlists(); track playlist.id) {
+                  <li class="add-to-playlist__row">
+                    <div class="add-to-playlist__row-info">
+                      <span class="add-to-playlist__row-name">{{ playlist.name }}</span>
+                      <span class="add-to-playlist__row-count">{{ playlist.songIds.length }} track{{ playlist.songIds.length === 1 ? '' : 's' }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn--primary btn--sm"
+                      (click)="addToPlaylist(playlist)"
+                      [disabled]="containsAll(playlist)"
+                    >
+                      {{ containsAll(playlist) ? 'Added' : 'Add' }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+
+            <h4 class="add-to-playlist__subtitle">New Playlist</h4>
+            <div class="add-to-playlist__create">
+              <input
+                class="form-field__control"
+                type="text"
+                [value]="newPlaylistName()"
+                (input)="onNewPlaylistNameInput($event)"
+                placeholder="Playlist name"
+                aria-label="New playlist name"
+              />
+              <button
+                type="button"
+                class="btn btn--primary"
+                (click)="createPlaylist()"
+                [disabled]="!newPlaylistName().trim() || isCreating()"
+              >
+                @if (isCreating()) {
+                  <span class="spinner-ring"></span>
+                  Creating...
+                } @else {
+                  Create
+                }
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</app-modal-dialog>

@@ -4,8 +4,9 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideSignalFormsConfig } from '@angular/forms/signals';
 
-import { routes } from './app.routes';
+import { routes } from './core/routes/app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
 import { environment } from '../environments/environment';
 import { ErrorInterceptor } from './core/interceptors/error.interceptor';
@@ -20,12 +21,14 @@ export const appConfig: ApplicationConfig = {
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
-    provideHttpClient(
-      withInterceptors([
-        ErrorInterceptor,
-        LoadingInterceptor,
-      ] as const)
-    ),
+    provideHttpClient(withInterceptors([ErrorInterceptor, LoadingInterceptor] as const)),
     ThemeService,
+    // Platform-wide Signal Forms config: every `[formField]` control that is
+    // both touched and invalid automatically receives the `.input-error` class.
+    provideSignalFormsConfig({
+      classes: {
+        'input-error': (formField) => formField.state().touched() && formField.state().invalid(),
+      },
+    }),
   ],
 };

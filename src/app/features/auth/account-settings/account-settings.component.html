@@ -1,0 +1,173 @@
+<div class="settings-page">
+  <div class="settings-container">
+    <header class="settings-header">
+      <div>
+        <h1 class="settings-title">Account Settings</h1>
+        <p class="settings-subtitle">Manage your profile, privacy, and account</p>
+      </div>
+      <a routerLink="/artist" class="btn btn--secondary">Back to Artist Studio</a>
+    </header>
+
+    @if (error()) {
+      <app-error-banner [message]="error()!" (dismiss)="clearError()" />
+    }
+
+    @if (isLoading()) {
+      <div class="settings-loading">
+        <app-loading-spinner size="lg" label="Loading settings..." />
+      </div>
+    } @else {
+      <!-- Profile Section -->
+      <section class="settings-section">
+        <h2 class="section-title">Profile</h2>
+        <div class="settings-form">
+          <div class="form-field">
+            <label for="displayName">Display Name</label>
+            <input
+              id="displayName"
+              type="text"
+              [formField]="settingsForm.displayName"
+              class="form-field__control"
+              placeholder="Your display name"
+            />
+            <app-field-errors [field]="settingsForm.displayName" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Privacy Consent Section -->
+      <section class="settings-section">
+        <h2 class="section-title">Privacy Consent (POPIA)</h2>
+        <p class="section-description">
+          Update your consent preferences for data processing and communications.
+        </p>
+
+        <div class="consent-form">
+          <label class="consent-checkbox">
+            <input type="checkbox" [formField]="settingsForm.consentDataProcessing" />
+            <span class="checkbox-label">
+              I consent to my personal data being stored and processed
+              <a routerLink="/legal/privacy" target="_blank">(Privacy Policy)</a>
+            </span>
+          </label>
+          @if (isDataProcessingLocked()) {
+            <span class="consent-locked-note">
+              This consent has already been accepted and can no longer be changed.
+            </span>
+          }
+
+          <label class="consent-checkbox">
+            <input type="checkbox" [formField]="settingsForm.consentMarketing" />
+            <span class="checkbox-label">I consent to receive marketing emails</span>
+          </label>
+
+          <label class="consent-checkbox">
+            <input type="checkbox" [formField]="settingsForm.consentWhatsapp" />
+            <span class="checkbox-label">I consent to receive WhatsApp messages</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Save Button -->
+      <div class="settings-actions">
+        <button
+          type="button"
+          class="btn btn--primary btn--block"
+          (click)="saveSettings()"
+          [disabled]="isSaving()"
+        >
+          @if (isSaving()) {
+            <app-loading-spinner size="sm" />
+            <span>Saving...</span>
+          } @else {
+            <span>Save Settings</span>
+          }
+        </button>
+      </div>
+
+      <!-- Danger Zone -->
+      <section class="settings-section danger-zone">
+        <h2 class="section-title danger-title">Danger Zone</h2>
+        <p class="section-description danger-description">
+          Once you delete your account, all your data will be permanently removed. This action
+          cannot be undone.
+        </p>
+        <button type="button" class="btn btn--danger" (click)="openDeleteModal()">
+          Delete My Account
+        </button>
+      </section>
+    }
+
+    <!-- Delete Confirmation Modal -->
+    <app-modal-dialog
+      [isOpen]="showDeleteModal()"
+      title="Delete Account"
+      size="sm"
+      (dismiss)="closeDeleteModal()"
+    >
+      <div class="delete-modal">
+        <p class="delete-warning">
+          This will permanently delete your account and all associated data. This action cannot be
+          undone.
+        </p>
+
+        @if (modalError()) {
+          <app-error-banner [message]="modalError()!" (dismiss)="clearModalError()" />
+        }
+
+        <div class="form-field">
+          <label for="deleteConfirm"> Type <strong>DELETE</strong> to confirm </label>
+          <input
+            id="deleteConfirm"
+            type="text"
+            class="form-field__control"
+            placeholder="DELETE"
+            [class.input-error]="deleteAttempted() && deleteConfirmText() !== 'DELETE'"
+            [value]="deleteConfirmText()"
+            (input)="deleteConfirmText.set($any($event.target).value)"
+          />
+          @if (deleteAttempted() && deleteConfirmText() !== 'DELETE') {
+            <span class="form-field__error" aria-live="polite">Type DELETE to confirm</span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="deletePassword">Enter your password to re-authenticate</label>
+          <input
+            id="deletePassword"
+            type="password"
+            class="form-field__control"
+            placeholder="Your password"
+            [class.input-error]="deleteAttempted() && !deletePassword()"
+            [value]="deletePassword()"
+            (input)="deletePassword.set($any($event.target).value)"
+          />
+          @if (deleteAttempted() && !deletePassword()) {
+            <span class="form-field__error" aria-live="polite"
+              >Password is required to delete your account</span
+            >
+          }
+        </div>
+
+        <div class="delete-modal-actions">
+          <button type="button" class="btn btn--secondary" (click)="closeDeleteModal()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn--danger"
+            (click)="confirmDeleteAccount()"
+            [disabled]="deleteConfirmText() !== 'DELETE' || !deletePassword() || isDeleting()"
+          >
+            @if (isDeleting()) {
+              <app-loading-spinner size="sm" />
+              <span>Deleting...</span>
+            } @else {
+              <span>Permanently Delete</span>
+            }
+          </button>
+        </div>
+      </div>
+    </app-modal-dialog>
+  </div>
+</div>

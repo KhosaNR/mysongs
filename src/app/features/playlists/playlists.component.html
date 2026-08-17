@@ -1,0 +1,77 @@
+<main class="playlists-page">
+  <header class="playlists-page__header">
+    <h1 class="playlists-page__title">My Playlists</h1>
+    <p class="playlists-page__subtitle">
+      @if (playlists().length === 0) {
+        Save tracks into playlists to keep your favourites together.
+      } @else {
+        {{ playlists().length }} playlist{{ playlists().length === 1 ? '' : 's' }} · {{ totalTracks() }} track{{ totalTracks() === 1 ? '' : 's' }}
+      }
+    </p>
+  </header>
+
+  @if (error(); as message) {
+    <div class="error-banner">
+      <p>{{ message }}</p>
+      <button type="button" (click)="error.set(null)">×</button>
+    </div>
+  }
+
+  <section class="playlists-page__create" aria-label="Create playlist">
+    <input
+      class="form-field__control"
+      type="text"
+      [value]="newPlaylistName()"
+      (input)="onNewPlaylistNameInput($event)"
+      placeholder="New playlist name"
+      aria-label="New playlist name"
+    />
+    <button
+      type="button"
+      class="btn btn--primary"
+      (click)="createPlaylist()"
+      [disabled]="!newPlaylistName().trim() || isCreating()"
+    >
+      @if (isCreating()) {
+        <span class="spinner-ring"></span>
+        Creating...
+      } @else {
+        Create Playlist
+      }
+    </button>
+  </section>
+
+  @if (isLoading()) {
+    <div class="playlists-page__loading">
+      <app-loading-spinner size="lg" aria-label="Loading playlists" />
+    </div>
+  } @else if (playlists().length === 0) {
+    <app-empty-state icon="queue_music" title="No playlists yet" description="Create your first playlist above" />
+  } @else {
+    <div class="playlists-page__grid">
+      @for (playlist of playlists(); track playlist.id) {
+        <div class="playlist-card">
+          <a class="playlist-card__link" [routerLink]="['/playlist', playlist.id]">
+            <div class="playlist-card__art">
+              <span class="material-icons" aria-hidden="true">queue_music</span>
+            </div>
+            <div class="playlist-card__info">
+              <h3 class="playlist-card__name">{{ playlist.name }}</h3>
+              <p class="playlist-card__meta">
+                {{ playlist.songIds.length }} track{{ playlist.songIds.length === 1 ? '' : 's' }}
+              </p>
+            </div>
+          </a>
+          <button
+            type="button"
+            class="playlist-card__delete"
+            (click)="deletePlaylist(playlist)"
+            aria-label="Delete {{ playlist.name }}"
+          >
+            <span class="material-icons" aria-hidden="true">delete</span>
+          </button>
+        </div>
+      }
+    </div>
+  }
+</main>

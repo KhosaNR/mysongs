@@ -1,0 +1,127 @@
+// ============================================================================
+// DESIGN SYSTEM: Buttons (shared component layer)
+// Phase P003A
+//
+// Usage:
+//   <button class="btn btn--primary">      Primary action
+//   <button class="btn btn--secondary">    Cancel / neutral action
+//   <button class="btn btn--danger">       Destructive action
+//   <button class="btn btn--ghost">        Subtle row action
+//   <a class="btn btn--link">              Text link styled as button
+//   <button class="btn btn--primary btn--sm btn--block">
+//
+// Every color reads a design token, so platform defaults and artist/song/album
+// themes restyle all buttons automatically with no per-component edits.
+// ============================================================================
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-primary);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(1px);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// VARIANTS
+// ----------------------------------------------------------------------------
+
+.btn--primary {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  border-color: transparent;
+
+  &:not(:disabled):hover {
+    background: color-mix(in srgb, var(--accent-primary) 85%, black);
+  }
+}
+
+.btn--secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+
+  &:not(:disabled):hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-secondary);
+  }
+}
+
+.btn--danger {
+  background: var(--color-error);
+  color: var(--text-on-danger);
+  border-color: transparent;
+
+  &:not(:disabled):hover {
+    background: color-mix(in srgb, var(--color-error) 85%, black);
+  }
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+
+  &:not(:disabled):hover {
+    background: var(--color-hover);
+    color: var(--text-primary);
+  }
+}
+
+.btn--link {
+  background: transparent;
+  color: var(--accent-primary);
+  border-color: transparent;
+  padding: 0;
+  min-height: auto;
+  text-decoration: underline;
+
+  &:not(:disabled):hover {
+    text-decoration: none;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// SIZES & LAYOUT
+// ----------------------------------------------------------------------------
+
+.btn--sm {
+  min-height: 2rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.btn--lg {
+  min-height: var(--space-6);
+  padding: 0 var(--space-5);
+  font-size: var(--text-md);
+}
+
+.btn--block {
+  width: 100%;
+}

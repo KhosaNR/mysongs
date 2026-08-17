@@ -1,0 +1,61 @@
+<div class="dashboard-page">
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <div>
+        <h1 class="dashboard-title">My Dashboard</h1>
+        <p class="dashboard-subtitle">Welcome back, {{ userDisplayName() }}</p>
+      </div>
+      <a routerLink="/account" class="btn btn--secondary">Account Settings</a>
+    </header>
+
+    @if (error()) {
+      <app-error-banner [message]="error()!" (dismiss)="clearError()" />
+    }
+
+    @if (isLoading()) {
+      <div class="dashboard-loading">
+        <app-loading-spinner size="lg" label="Loading your purchases..." />
+      </div>
+    } @else if (purchases().length === 0) {
+      <div class="dashboard-empty">
+        <div class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <h2>No Purchases Yet</h2>
+        <p>Browse tracks and purchase your favorites to see them here.</p>
+        <a routerLink="/" class="btn btn--primary">Browse Music</a>
+      </div>
+    } @else {
+      <section class="dashboard-section">
+        <h2 class="section-title">My Purchases ({{ purchases().length }})</h2>
+        <div class="purchases-list">
+          @for (purchase of purchases(); track purchase.id) {
+            <div class="purchase-card">
+              <div class="purchase-info">
+                <span class="purchase-type">
+                  {{ purchase.purchaseType === 'album' ? 'Album' : 'Song' }}
+                </span>
+                <span class="purchase-date">
+                  {{ purchase.timestamp | date: 'mediumDate' }}
+                </span>
+              </div>
+              <div class="purchase-details">
+                @if (purchase.purchaseType === 'single' && purchase.songId) {
+                  <span class="purchase-id">Song: {{ purchase.songId }}</span>
+                }
+                @if (purchase.purchaseType === 'album' && purchase.songIds) {
+                  <span class="purchase-id">Album: {{ purchase.albumId }} ({{ purchase.songIds.length }} tracks)</span>
+                }
+                <span class="purchase-amount">R{{ purchase.amountZAR.toFixed(2) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</div>

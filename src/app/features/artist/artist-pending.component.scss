@@ -1,0 +1,50 @@
+.artist-pending {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--bg-primary);
+
+  &__card {
+    max-width: 480px;
+    width: 100%;
+    padding: var(--space-8);
+    border-radius: var(--radius-lg);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-4);
+    border-radius: 50%;
+    background: var(--accent-primary);
+    color: var(--text-on-accent);
+
+    svg {
+      width: 36px;
+      height: 36px;
+    }
+  }
+
+  &__title {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-normal);
+    margin-bottom: var(--space-3);
+    color: var(--text-heading);
+  }
+
+  &__message {
+    font-size: var(--text-md);
+    line-height: 1.6;
+    margin-bottom: var(--space-6);
+    color: var(--text-secondary);
+  }
+}

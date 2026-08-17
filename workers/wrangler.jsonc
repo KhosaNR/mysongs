@@ -1,16 +1,75 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "leo-bee-workers",
+  "name": "my-songs-workers",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-16",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "observability": {
     "enabled": true
   },
   "vars": {
-    "ENVIRONMENT": "development"
+    "ENVIRONMENT": "development",
+    "R2_PUBLIC_URL": ""
   },
   "dev": {
     "port": 8787
+  },
+  "r2_buckets": [
+    {
+      "binding": "R2_STREAM_BUCKET",
+      "bucket_name": "my-songs-stream",
+      "preview_bucket_name": "my-songs-stream-dev"
+    },
+    {
+      "binding": "R2_DOWNLOAD_BUCKET",
+      "bucket_name": "my-songs-downloads",
+      "preview_bucket_name": "my-songs-downloads-dev"
+    },
+    {
+      "binding": "R2_ASSETS_BUCKET",
+      "bucket_name": "my-songs-assets",
+      "preview_bucket_name": "my-songs-assets-dev"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "placeholder_rate_limit_kv_id",
+      "preview_id": "placeholder_rate_limit_kv_preview_id"
+    }
+  ],
+  "env": {
+    "qa": {
+      "vars": {
+        "ENVIRONMENT": "qa",
+        "R2_PUBLIC_URL": "",
+        "FIRESTORE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@mysongs-qa.iam.gserviceaccount.com",
+        "FIRESTORE_PROJECT_ID": "mysongs-qa",
+        "FIRESTORE_API_URL": "https://firestore.googleapis.com/v1"
+      },
+      "r2_buckets": [
+        {
+          "binding": "R2_STREAM_BUCKET",
+          "bucket_name": "my-songs-stream-qa"
+        },
+        {
+          "binding": "R2_DOWNLOAD_BUCKET",
+          "bucket_name": "my-songs-downloads-qa"
+        },
+        {
+          "binding": "R2_ASSETS_BUCKET",
+          "bucket_name": "my-songs-assets-qa"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "RATE_LIMIT_KV",
+          "id": "2e96d5fad20e4c519983744fa9f60add"
+        }
+      ],
+      "workers_dev": true
+    }
   }
 }

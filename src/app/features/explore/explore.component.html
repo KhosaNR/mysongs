@@ -1,0 +1,153 @@
+<main class="explore-page">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <app-loading-spinner size="lg" aria-label="Loading explore page" />
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <app-error-banner
+        [message]="error() || 'Failed to load explore page'"
+        type="error"
+        (dismiss)="onRetry()" />
+      <button class="retry-button" type="button" (click)="onRetry()">
+        Try Again
+      </button>
+    </div>
+  } @else {
+    <nav class="explore-tabs" role="tablist" aria-label="Browse content">
+      <button type="button" class="explore-tabs__tab" [class.explore-tabs__tab--active]="activeTab() === 'fresh'" (click)="setTab('fresh')" role="tab" [attr.aria-selected]="activeTab() === 'fresh'">Fresh</button>
+      <button type="button" class="explore-tabs__tab" [class.explore-tabs__tab--active]="activeTab() === 'artists'" (click)="setTab('artists')" role="tab" [attr.aria-selected]="activeTab() === 'artists'">Artists</button>
+      <button type="button" class="explore-tabs__tab" [class.explore-tabs__tab--active]="activeTab() === 'genre'" (click)="setTab('genre')" role="tab" [attr.aria-selected]="activeTab() === 'genre'">Genre</button>
+      <button type="button" class="explore-tabs__tab" [class.explore-tabs__tab--active]="activeTab() === 'videos'" (click)="setTab('videos')" role="tab" [attr.aria-selected]="activeTab() === 'videos'">Videos</button>
+      <button type="button" class="explore-tabs__tab" [class.explore-tabs__tab--active]="activeTab() === 'lyrics'" (click)="setTab('lyrics')" role="tab" [attr.aria-selected]="activeTab() === 'lyrics'">Lyrics</button>
+    </nav>
+
+    <div class="explore-content">
+      @if (activeTab() === 'fresh') {
+        <div class="explore-section">
+          <h2 class="explore-section__title">Recently Added Albums</h2>
+          @if (recentAlbums().length > 0) {
+            <div class="explore-albums-grid">
+              @for (album of recentAlbums(); track album.albumId) {
+                <a class="explore-album-card" [routerLink]="['/album', album.albumId]">
+                  @if (album.artworkUrl) {
+                    <img [src]="album.artworkUrl" [alt]="album.title + ' album artwork'" class="explore-album-card__artwork" loading="lazy" />
+                  } @else {
+                    <div class="explore-album-card__placeholder">
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                    </div>
+                  }
+                  <div class="explore-album-card__info">
+                    <h3 class="explore-album-card__title">{{ album.title }}</h3>
+                    <span class="explore-album-card__artist">{{ getArtistName(album.artistId) }}</span>
+                  </div>
+                </a>
+              }
+            </div>
+          } @else {
+            <app-empty-state icon="music" title="No albums yet" description="Check back soon for new releases" />
+          }
+        </div>
+        <div class="explore-section">
+          <h2 class="explore-section__title">Recently Added Songs</h2>
+          @if (recentSongs().length > 0) {
+            <div class="explore-track-list">
+              @for (song of recentSongs(); track song.songId) {
+                <app-track-row [song]="song" [artworkUrl]="getArtworkUrl(song)" [artistName]="getArtistName(song.artistId)" [albumTitle]="getAlbumTitle(song.albumId)" [canPurchase]="canPurchase()" (playRequested)="onPlayTrack($event)" (download)="onDownloadClick($event)" (addToPlaylist)="onAddToPlaylist($event)" />
+              }
+            </div>
+          } @else {
+            <app-empty-state icon="music" title="No songs yet" description="Check back soon for new tracks" />
+          }
+        </div>
+      }
+
+      @if (activeTab() === 'artists') {
+        <div class="explore-section">
+          <h2 class="explore-section__title">Artists</h2>
+          @if (artists().length > 0) {
+            <div class="explore-artists-grid">
+              @for (artist of artists(); track artist.artistId) {
+                <a class="explore-artist-card" [routerLink]="['/artist', artist.artistId]">
+                  @if (artist.photoURL) {
+                    <img [src]="artist.photoURL" [alt]="artist.name" class="explore-artist-card__photo" loading="lazy" />
+                  } @else {
+                    <div class="explore-artist-card__placeholder">
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                  }
+                  <h3 class="explore-artist-card__name">{{ artist.name }}</h3>
+                  @if (artist.genre) { <span class="explore-artist-card__genre">{{ artist.genre }}</span> }
+                  @if (artist.bio) { <p class="explore-artist-card__bio">{{ artist.bio }}</p> }
+                </a>
+              }
+            </div>
+          } @else {
+            <app-empty-state icon="empty-box" title="No artists yet" description="Check back soon" />
+          }
+        </div>
+      }
+
+      @if (activeTab() === 'genre') {
+        <div class="explore-section">
+          <h2 class="explore-section__title">Browse by Genre</h2>
+          <div class="explore-genre-chips" role="group" aria-label="Filter by genre">
+            @for (genre of genres(); track genre) {
+              <button type="button" class="explore-genre-chip" [class.explore-genre-chip--active]="activeGenre() === genre" (click)="setGenre(genre)">{{ genre }}</button>
+            }
+          </div>
+          @if (filteredSongsByGenre().length > 0) {
+            <div class="explore-track-list">
+              @for (song of filteredSongsByGenre(); track song.songId) {
+                <app-track-row [song]="song" [artworkUrl]="getArtworkUrl(song)" [artistName]="getArtistName(song.artistId)" [albumTitle]="getAlbumTitle(song.albumId)" [canPurchase]="canPurchase()" (playRequested)="onPlayTrack($event)" (download)="onDownloadClick($event)" (addToPlaylist)="onAddToPlaylist($event)" />
+              }
+            </div>
+          } @else {
+            <app-empty-state icon="music" title="No songs in this genre" description="Try a different genre" />
+          }
+        </div>
+      }
+
+      @if (activeTab() === 'videos') {
+        <div class="explore-section">
+          <h2 class="explore-section__title">Videos</h2>
+          @if (videoSongs().length > 0) {
+            <div class="explore-videos-grid">
+              @for (song of videoSongs(); track song.songId) {
+                <div class="explore-video-card">
+                  <div class="explore-video-card__embed">
+                    <iframe [src]="'https://www.youtube-nocookie.com/embed/' + song.youtubeVideoId + '?autoplay=0&rel=0'" [title]="song.title + ' video'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+                  </div>
+                  <div class="explore-video-card__info">
+                    <h3 class="explore-video-card__title">{{ song.title }}</h3>
+                    <span class="explore-video-card__artist">{{ getArtistName(song.artistId) }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <app-empty-state icon="music" title="No videos yet" description="Check back soon for music videos" />
+          }
+        </div>
+      }
+
+      @if (activeTab() === 'lyrics') {
+        <div class="explore-section">
+          <h2 class="explore-section__title">Lyrics</h2>
+          @if (lyricsSongs().length > 0) {
+            <div class="explore-track-list">
+              @for (song of lyricsSongs(); track song.songId) {
+                <app-track-row [song]="song" [artworkUrl]="getArtworkUrl(song)" [artistName]="getArtistName(song.artistId)" [albumTitle]="getAlbumTitle(song.albumId)" [canPurchase]="canPurchase()" (playRequested)="onPlayTrack($event)" (download)="onDownloadClick($event)" (addToPlaylist)="onAddToPlaylist($event)" />
+              }
+            </div>
+          } @else {
+            <app-empty-state icon="search" title="No lyrics available" description="Check back soon" />
+          }
+        </div>
+      }
+    </div>
+
+    <app-purchase-dialog [state]="dialogState()" [song]="dialogSong()" [errorMessage]="dialogError()" (dismiss)="closeDialog()" (purchase)="confirmPurchase($event)" />
+    <app-add-to-playlist-dialog [isOpen]="isPlaylistDialogOpen()" [songIds]="playlistSongIds()" (closed)="closePlaylistDialog()" />
+  }
+</main>

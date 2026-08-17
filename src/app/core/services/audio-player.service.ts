@@ -1,5 +1,6 @@
-import { Injectable, inject, signal, effect, OnDestroy } from '@angular/core';
+import { Injectable, inject, signal, computed, effect, OnDestroy, DestroyRef } from '@angular/core';
 import { ErrorHandler, Result } from '../utils/error-handler';
+import { NetworkStatusService } from './network-status.service';
 
 /**
  * Represents the current playback state.
@@ -13,6 +14,8 @@ export interface PlaybackState {
   readonly volume: number;
   readonly isMuted: boolean;
   readonly isLoading: boolean;
+  readonly isRetrying: boolean;
+  readonly autoResumed: boolean;
   readonly error: string | null;
 }
 
@@ -23,8 +26,16 @@ export interface Track {
   readonly id: string;
   readonly title: string;
   readonly artist: string;
+  readonly artistId: string;
+  readonly albumId?: string;
+  readonly albumTitle?: string;
   readonly streamUrl: string;
+  readonly artworkUrl?: string;
   readonly duration?: number;
+  readonly youtubeVideoId?: string;
+  readonly lyrics?: string;
+  readonly priceZAR?: number;
+  readonly minimumPriceZAR?: number;
 }
 
 /**
@@ -39,7 +50,7 @@ export interface Track {
  * this.audioPlayerService.playTrack({
  *   id: 'track_101',
  *   title: 'Soweto Grooves',
- *   artist: 'Leo Bee',
+ *   artist: 'Test Artist',
  *   streamUrl: 'https://pub-r2.dev/stream_101.mp3'
  * });
  * 
@@ -60,9 +71,12 @@ export interface Track {
 })
 export class AudioPlayerService implements OnDestroy {
   private readonly errorHandler = inject(ErrorHandler);
+  private readonly networkStatus = inject(NetworkStatusService);
+  private readonly destroyRef = inject(DestroyRef);
   private audioElement: HTMLAudioElement | null = null;
   private timeUpdateInterval: number | null = null;
   private stallDetectionTimeout: number | null = null;
+  private autoResumeTimeout: number | null = null;
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts = 3;
 
@@ -79,6 +93,8 @@ export class AudioPlayerService implements OnDestroy {
     volume: 1.0,
     isMuted: false,
     isLoading: false,
+    isRetrying: false,
+    autoResumed: false,
     error: null,
   });
 
@@ -92,9 +108,23 @@ export class AudioPlayerService implements OnDestroy {
    */
   readonly currentIndex = signal<number>(-1);
 
+  /**
+   * Whether a track is currently selected for streaming.
+   *
+   * True when a stream URL is loaded or a queue entry is selected.
+   */
+  readonly hasActiveTrack = computed(() => {
+    const idx = this.currentIndex();
+    const queue = this.queue();
+    return this.state().currentTrackUrl !== null || (idx >= 0 && idx < queue.length);
+  });
+
   constructor() {
-    this.initializeAudioElement();
-    this.setupNetworkListeners();
+    if (typeof window !== 'undefined') {
+      this.initializeAudioElement();
+      this.setupNetworkListeners();
+      this.watchReconnect();
+    }
   }
 
   /**
@@ -108,17 +138,19 @@ export class AudioPlayerService implements OnDestroy {
 
     // Time update
     this.audioElement.addEventListener('timeupdate', () => {
+      const current = this.audioElement?.currentTime ?? 0;
       this.state.update(s => ({
         ...s,
-        currentTime: this.audioElement?.currentTime || 0,
+        currentTime: Number.isFinite(current) ? current : 0,
       }));
     });
 
     // Duration change
     this.audioElement.addEventListener('durationchange', () => {
+      const duration = this.audioElement?.duration ?? 0;
       this.state.update(s => ({
         ...s,
-        duration: this.audioElement?.duration || 0,
+        duration: Number.isFinite(duration) ? duration : 0,
       }));
     });
 
@@ -134,12 +166,17 @@ export class AudioPlayerService implements OnDestroy {
     });
 
     this.audioElement.addEventListener('canplay', () => {
-      this.state.update(s => ({ ...s, isLoading: false }));
+      this.state.update(s => ({ ...s, isLoading: false, isRetrying: false }));
       this.stopStallDetection();
     });
 
+    // Playing state (clears retrying flag)
+    this.audioElement.addEventListener('playing', () => {
+      this.state.update(s => ({ ...s, isRetrying: false }));
+    });
+
     // Error handling
-    this.audioElement.addEventListener('error', (event) => {
+    this.audioElement.addEventListener('error', () => {
       const error = this.audioElement?.error;
       let errorMessage = 'Audio playback failed.';
 
@@ -160,7 +197,7 @@ export class AudioPlayerService implements OnDestroy {
         }
       }
 
-      this.state.update(s => ({ ...s, error: errorMessage, isLoading: false }));
+      this.state.update(s => ({ ...s, error: errorMessage, isLoading: false, isRetrying: false }));
       this.stopStallDetection();
 
       this.errorHandler.executeSync(
@@ -190,15 +227,47 @@ export class AudioPlayerService implements OnDestroy {
    * @private
    */
   private setupNetworkListeners(): void {
-    // Listen to online event to resume playback
+    // Fallback: listen to raw online event as well
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         const currentState = this.state();
         if (currentState.currentTrackUrl && !currentState.isPlaying) {
-          this.resume();
+          this.autoResumePlayback();
         }
       });
     }
+  }
+
+  /**
+   * Watches the NetworkStatusService `wasOffline` signal to auto-resume
+   * playback and notify the user when connectivity is restored.
+   * @private
+   */
+  private watchReconnect(): void {
+    effect(() => {
+      if (this.networkStatus.wasOffline()) {
+        const currentState = this.state();
+        if (currentState.currentTrackUrl && !currentState.isPlaying) {
+          this.autoResumePlayback();
+        }
+      }
+    });
+  }
+
+  /**
+   * Attempts to resume playback after a network reconnect and shows a
+   * transient auto-resumed indicator.
+   * @private
+   */
+  private autoResumePlayback(): void {
+    this.state.update(s => ({ ...s, autoResumed: true }));
+    this.resume();
+
+    // Clear the autoResumed flag after 3 seconds
+    this.autoResumeTimeout = window.setTimeout(() => {
+      this.state.update(s => ({ ...s, autoResumed: false }));
+      this.autoResumeTimeout = null;
+    }, 3000);
   }
 
   /**
@@ -238,12 +307,14 @@ export class AudioPlayerService implements OnDestroy {
         ...s,
         error: 'Playback stalled. Please try again.',
         isLoading: false,
+        isRetrying: false,
       }));
       this.stopStallDetection();
       return;
     }
 
     this.reconnectAttempts++;
+    this.state.update(s => ({ ...s, isRetrying: true }));
     const currentUrl = this.state().currentTrackUrl;
     const currentTime = this.audioElement?.currentTime || 0;
 
@@ -267,7 +338,11 @@ export class AudioPlayerService implements OnDestroy {
       return Result.failure('Audio player not initialized.');
     }
 
-    this.state.update(s => ({ ...s, isLoading: true, error: null }));
+    // The player UI resolves track metadata from queue[currentIndex], so the
+    // played track must be synchronized into the queue — not just state.
+    this.ensureTrackInQueue(track);
+
+    this.state.update(s => ({ ...s, isLoading: true, isRetrying: false, error: null }));
     this.reconnectAttempts = 0;
 
     const result = await this.errorHandler.execute(
@@ -298,6 +373,60 @@ export class AudioPlayerService implements OnDestroy {
     }
 
     return result;
+  }
+
+  /**
+   * Replaces the playback queue with the given tracks and starts playback at
+   * the requested index.
+   *
+   * Used by album/playlist views to queue and play a full collection while
+   * preserving the metadata the player UI resolves from `queue[currentIndex]`.
+   *
+   * @param tracks - Ordered tracks to enqueue
+   * @param startIndex - Index within `tracks` to begin playback (default 0)
+   * @returns A Result indicating success or failure
+   */
+  async playQueue(tracks: Track[], startIndex = 0): Promise<Result<void>> {
+    if (tracks.length === 0) {
+      return Result.failure('Nothing to play.');
+    }
+
+    const safeStart = Math.min(Math.max(startIndex, 0), tracks.length - 1);
+    this.queue.set([...tracks]);
+    this.currentIndex.set(safeStart);
+
+    return this.playTrack(tracks[safeStart]);
+  }
+
+  /**
+   * Ensures the given track is registered in the playback queue and selected.
+   *
+   * The player UI derives the current track's metadata from
+   * `queue[currentIndex]`, so tracks played directly (e.g. from the Explore
+   * page) must also be synchronized into the queue. Tracks already selected at
+   * the current index are left untouched (covers next/previous/jump flows);
+   * tracks queued elsewhere are re-selected in place to avoid duplicates;
+   * otherwise the track is appended and selected.
+   *
+   * @param track - The track about to be played
+   * @private
+   */
+  private ensureTrackInQueue(track: Track): void {
+    const currentQueue = this.queue();
+    const currentIdx = this.currentIndex();
+
+    if (currentIdx >= 0 && currentIdx < currentQueue.length && currentQueue[currentIdx].id === track.id) {
+      return;
+    }
+
+    const existingIdx = currentQueue.findIndex(t => t.id === track.id);
+    if (existingIdx >= 0) {
+      this.currentIndex.set(existingIdx);
+      return;
+    }
+
+    this.queue.update(q => [...q, track]);
+    this.currentIndex.set(this.queue().length - 1);
   }
 
   /**
@@ -372,6 +501,8 @@ export class AudioPlayerService implements OnDestroy {
         volume: this.state().volume,
         isMuted: this.state().isMuted,
         isLoading: false,
+        isRetrying: false,
+        autoResumed: false,
         error: null,
       });
 
@@ -533,6 +664,11 @@ export class AudioPlayerService implements OnDestroy {
   ngOnDestroy(): void {
     this.stopStallDetection();
     
+    if (this.autoResumeTimeout !== null) {
+      clearTimeout(this.autoResumeTimeout);
+      this.autoResumeTimeout = null;
+    }
+
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.src = '';

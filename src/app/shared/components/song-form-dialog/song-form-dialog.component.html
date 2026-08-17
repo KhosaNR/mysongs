@@ -1,0 +1,210 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit Song' : 'New Song' }}</h2>
+
+<form [formRoot]="songForm" (submit)="save()">
+  <mat-dialog-content>
+    @if (error()) {
+      <div class="error-banner">
+        <p>{{ error() }}</p>
+        <button type="button" class="error-banner__dismiss" (click)="error.set(null)">×</button>
+      </div>
+    }
+
+    <div class="form-section">
+      <h4>Audio File</h4>
+      <div class="audio-field">
+        <input type="file" id="audioFile" accept="audio/*" (change)="onAudioSelected($event)" />
+        <label for="audioFile" class="btn btn--secondary">
+          @if (isEditMode) {
+            Replace Audio (optional)
+          } @else {
+            Choose Audio
+          }
+        </label>
+        @if (audioFile()) {
+          <span class="file-name">{{ audioFile()?.name }}</span>
+        }
+        @if (isUploadingAudio()) {
+          <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
+          <p class="progress-text">Uploading audio... {{ uploadProgress() }}%</p>
+        }
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>Song Details</h4>
+      <mat-form-field appearance="outline" class="field-full">
+        <mat-label>Song Title *</mat-label>
+        <input matInput [formField]="songForm.title" />
+        <mat-error>{{ songForm.title().errors()[0]?.message }}</mat-error>
+      </mat-form-field>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Featured Artists</mat-label>
+          <input matInput [formField]="songForm.featuredArtists" placeholder="Artist 2" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Producers</mat-label>
+          <input matInput [formField]="songForm.producers" placeholder="Producer" />
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="songType">Song Type</label>
+          <select id="songType" class="form-field__control" [formField]="songForm.songType">
+            <option value="album">Album Song</option>
+            <option value="single">Single</option>
+          </select>
+        </div>
+        @if (formData().songType === 'album') {
+          <div class="form-field">
+            <label for="albumId">Album *</label>
+            <select
+              class="form-field__control"
+              id="albumId"
+              [formField]="songForm.albumId"
+              (change)="onAlbumChange($event)"
+            >
+              @for (album of albums(); track album.id) {
+                <option [value]="album.id">{{ album.title }}</option>
+              }
+            </select>
+            <app-field-errors [field]="songForm.albumId" />
+            @if (albums().length === 0) {
+              <p class="field-hint">No albums yet. Create one first.</p>
+            }
+          </div>
+        }
+      </div>
+
+      @if (formData().songType === 'album') {
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Track Number</mat-label>
+            <input matInput type="number" [formField]="songForm.trackNumber" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Duration (seconds)</mat-label>
+            <input matInput type="number" [formField]="songForm.duration" />
+          </mat-form-field>
+        </div>
+      } @else {
+        <mat-form-field appearance="outline" class="field-full">
+          <mat-label>Duration (seconds)</mat-label>
+          <input matInput type="number" [formField]="songForm.duration" />
+        </mat-form-field>
+      }
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Genre</mat-label>
+          <input matInput [formField]="songForm.genre" placeholder="Hip-Hop/Rap" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Release Date</mat-label>
+          <input matInput type="date" [formField]="songForm.releaseDate" />
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="field-full">
+        <mat-label>Tags (comma-separated)</mat-label>
+        <input matInput [formField]="songForm.tags" placeholder="upbeat, motivational" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field-full">
+        <mat-label>Music Video YouTube ID</mat-label>
+        <input matInput [formField]="songForm.youtubeVideoId" placeholder="dQw4w9WgXcQ" />
+        <mat-hint>Paste the video ID from the YouTube URL (e.g. youtube.com/watch?v=ID)</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div class="form-section">
+      <h4>Pricing</h4>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Standard Price (ZAR)</mat-label>
+          <input matInput type="number" step="0.01" [formField]="songForm.priceZAR" />
+          <mat-hint>The default price buyers see at checkout. 0 = not for sale.</mat-hint>
+          <mat-error>{{ songForm.priceZAR().errors()[0]?.message }}</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Minimum Price (ZAR)</mat-label>
+          <input matInput type="number" step="0.01" [formField]="songForm.minimumPriceZAR" />
+          <mat-hint>Lowest amount a buyer may pay. Leave 0 to use the standard price as the minimum.</mat-hint>
+          <mat-error>{{ songForm.minimumPriceZAR().errors()[0]?.message }}</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>Lyrics</h4>
+      <mat-form-field appearance="outline" class="field-full">
+        <mat-label>Lyrics</mat-label>
+        <textarea matInput [formField]="songForm.lyrics" rows="4"></textarea>
+      </mat-form-field>
+    </div>
+
+    <div class="form-section">
+      <h4>Credits</h4>
+      <mat-form-field appearance="outline" class="field-full">
+        <mat-label>Written By</mat-label>
+        <input matInput [formField]="songForm.writtenBy" />
+      </mat-form-field>
+    </div>
+
+    <div class="form-section">
+      <h4>Theme Colors</h4>
+      <div class="form-row three-col">
+        <div class="form-field">
+          <label for="primaryColor">Primary</label>
+          <input class="form-field__control" type="color" id="primaryColor" [formField]="songForm.primaryColor" />
+        </div>
+        <div class="form-field">
+          <label for="secondaryColor">Secondary</label>
+          <input class="form-field__control" type="color" id="secondaryColor" [formField]="songForm.secondaryColor" />
+        </div>
+        <div class="form-field">
+          <label for="tertiaryColor">Tertiary</label>
+          <input class="form-field__control" type="color" id="tertiaryColor" [formField]="songForm.tertiaryColor" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>Cover Art</h4>
+      <div class="artwork-section">
+        <div class="artwork-preview">
+          @if (artworkPreview()) {
+            <img [src]="artworkPreview()" alt="Cover preview" />
+          } @else {
+            <div class="artwork-placeholder"><mat-icon>album</mat-icon></div>
+          }
+        </div>
+        <div class="artwork-actions">
+          <input type="file" id="artworkFile" accept="image/*" (change)="onArtworkSelected($event)" />
+          <label for="artworkFile" class="btn btn--secondary">Choose Cover</label>
+          @if (isUploadingArtwork()) {
+            <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
+            <p class="progress-text">Uploading cover... {{ uploadProgress() }}%</p>
+          }
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="close()" [disabled]="isSaving()">
+      Cancel
+    </button>
+    <button mat-flat-button type="submit" [disabled]="isSaving()">
+      @if (isSaving()) {
+        <mat-spinner diameter="16"></mat-spinner>
+        Saving...
+      } @else {
+        {{ isEditMode ? 'Update Song' : 'Create Song' }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>
+

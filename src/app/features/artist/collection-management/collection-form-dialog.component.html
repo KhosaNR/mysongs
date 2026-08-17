@@ -1,0 +1,59 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit Collection' : 'New Collection' }}</h2>
+
+<form [formRoot]="collectionForm" (submit)="save()">
+  <mat-dialog-content>
+    @if (error()) {
+      <div class="error-banner">
+        <p>{{ error() }}</p>
+        <button type="button" class="error-banner__dismiss" (click)="error.set(null)">×</button>
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="field-full">
+      <mat-label>Collection Name *</mat-label>
+      <input matInput [formField]="collectionForm.name" />
+      <mat-error>{{ collectionForm.name().errors()[0]?.message }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="field-full">
+      <mat-label>Description</mat-label>
+      <textarea matInput [formField]="collectionForm.description" rows="3"></textarea>
+    </mat-form-field>
+
+    <div class="form-section">
+      <h4>Songs</h4>
+      @if (songs.length === 0) {
+        <p class="collection-form__empty">No songs yet — add songs first, since collections can only include your own tracks.</p>
+      } @else {
+        <ul class="collection-form__songs">
+          @for (song of songs; track song.songId) {
+            <li class="collection-form__song">
+              <label class="collection-form__song-label">
+                <input
+                  type="checkbox"
+                  [checked]="selectedSongIds().includes(song.songId)"
+                  (change)="toggleSong(song.songId)"
+                />
+                <span class="collection-form__song-title">{{ song.title }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="close()" [disabled]="isSaving()">
+      Cancel
+    </button>
+    <button mat-flat-button type="submit" [disabled]="isSaving()">
+      @if (isSaving()) {
+        <mat-spinner diameter="16"></mat-spinner>
+        Saving...
+      } @else {
+        {{ isEditMode ? 'Update Collection' : 'Create Collection' }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

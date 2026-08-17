@@ -1,0 +1,83 @@
+<main class="collection-detail-page">
+  @if (isLoading()) {
+    <div class="collection-detail-page__loading">
+      <app-loading-spinner size="lg" aria-label="Loading collection" />
+    </div>
+  } @else if (error(); as message) {
+    <div class="error-container">
+      <app-error-banner [message]="message" type="error" />
+    </div>
+  } @else if (collection(); as collection) {
+    <div class="collection-detail">
+      <section class="collection-detail__header">
+        <div class="collection-detail__art collection-detail__art--placeholder">
+          <span class="material-icons" aria-hidden="true">collections_bookmark</span>
+        </div>
+
+        <div class="collection-detail__info">
+          <p class="collection-detail__type">Collection</p>
+          <h1 class="collection-detail__title">{{ collection.name }}</h1>
+
+          @if (artist(); as artist) {
+            <a class="collection-detail__artist" [routerLink]="['/artist', artist.artistId]">{{ artist.name }}</a>
+          }
+
+          <p class="collection-detail__meta">
+            {{ songs().length }} track{{ songs().length === 1 ? '' : 's' }}
+            @if (collection.description) {
+              · {{ collection.description }}
+            }
+          </p>
+
+          <div class="collection-detail__actions">
+            <button type="button" class="btn btn--primary" (click)="playAll()" [disabled]="songs().length === 0">
+              <span class="material-icons" aria-hidden="true">play_arrow</span>
+              Play All
+            </button>
+            <button type="button" class="btn btn--secondary" (click)="openCopyDialog()" [disabled]="songs().length === 0">
+              <span class="material-icons" aria-hidden="true">playlist_add</span>
+              Copy to Playlist
+            </button>
+            @if (canEdit()) {
+              <button type="button" class="btn btn--secondary" (click)="openEditCollection()">
+                <span class="material-icons" aria-hidden="true">edit</span>
+                Edit Collection
+              </button>
+              <button type="button" class="btn btn--danger" (click)="deleteCollection()" [disabled]="isDeleting()">
+                @if (isDeleting()) {
+                  <span class="spinner-ring"></span>
+                  Deleting...
+                } @else {
+                  Delete
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="collection-detail__tracks" aria-label="Collection songs">
+        @if (songs().length === 0) {
+          <app-empty-state icon="queue_music" title="This collection is empty" description="The artist hasn't added songs to this collection yet" />
+        } @else {
+          @for (item of songs(); track item.song.songId; let i = $index) {
+            <app-track-row
+              [song]="item.song"
+              [artworkUrl]="item.song.artworkUrl || null"
+              [artistName]="item.artistName"
+              [trackNumber]="i + 1"
+              (playRequested)="playAll(i)"
+              (addToPlaylist)="openCopyDialog()"
+            />
+          }
+        }
+      </section>
+    </div>
+  }
+
+  <app-add-to-playlist-dialog
+    [isOpen]="isPlaylistDialogOpen()"
+    [songIds]="copySongIds()"
+    (closed)="closeCopyDialog()"
+  />
+</main>

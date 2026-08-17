@@ -1,0 +1,60 @@
+.annotations {
+  padding: 1rem;
+}
+
+.annotations-list {
+  margin-top: 2rem;
+}
+
+.col-song {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.col-lines {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.col-author {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.col-status {
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &.active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    &.inactive {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+
+  .data-table__header,
+  .data-table__row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .data-table__actions {
+    flex-direction: column;
+  }
+}
+
+.data-table {
+  --data-table-cols: 1.5fr 1.5fr 1fr 1fr 1.5fr;
+}

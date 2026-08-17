@@ -27,9 +27,15 @@
 
 import { Injectable, signal, computed, effect, DOCUMENT } from '@angular/core';
 import { inject } from '@angular/core';
-import { Firestore } from '@angular/fire/firestore';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { Firestore, doc, updateDoc, getDoc } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
+import { DEFAULT_PLATFORM_COLORS, TEXT_ON_DARK, TEXT_ON_LIGHT, normalizePalette } from '../constants/theme.constants';
+import { getAccessibleTextColor, getContrastRatio } from '../utils/color-extractor';
+import { ThemeColors } from '../../shared/models/artist.interface';
+
+// Re-exported for backwards compatibility — consumers should prefer the
+// canonical `theme.constants` module.
+export { DEFAULT_PLATFORM_COLORS } from '../constants/theme.constants';
 
 /**
  * Theme mode options
@@ -44,30 +50,15 @@ export interface ThemePreference {
   customColors?: {
     primary?: string;
     secondary?: string;
-    accent?: string;
+    tertiary?: string;
   };
   updatedAt: string;
 }
 
 /**
- * Theme colors structure for artists/albums/songs
+ * Default platform colors — single source of truth is
+ * `src/app/core/constants/theme.constants.ts` (re-exported above).
  */
-export interface ThemeColors {
-  primary: string;
-  secondary: string;
-  accent: string;
-  background?: string;
-}
-
-/**
- * Default platform colors
- */
-const DEFAULT_COLORS: ThemeColors = {
-  primary: '#ffb800',
-  secondary: '#00a86b',
-  accent: '#e63946',
-  background: '#000000',
-};
 
 /**
  * Service for managing application theming with reactive Signals.
@@ -103,7 +94,7 @@ export class ThemeService {
   /**
    * Current theme colors from artist/album/song
    */
-  private readonly _themeColors = signal<ThemeColors>(DEFAULT_COLORS);
+  private readonly _themeColors = signal<ThemeColors>(DEFAULT_PLATFORM_COLORS);
   
   /**
    * Whether dynamic theming is active
@@ -114,6 +105,12 @@ export class ThemeService {
    * User's custom color overrides (if any)
    */
   private readonly _customColors = signal<Partial<ThemeColors>>({});
+
+  /**
+   * Admin-configured platform default colors (from `settings/platform`).
+   * Used whenever no song/album/artist theme is active.
+   */
+  private readonly _platformColors = signal<ThemeColors>(DEFAULT_PLATFORM_COLORS);
 
   // ==========================================================================
   // PUBLIC SIGNALS
@@ -138,6 +135,12 @@ export class ThemeService {
    * User's custom color overrides
    */
   readonly customColors = this._customColors.asReadonly();
+
+  /**
+   * Admin-configured platform default colors (fallback when no content theme
+   * is active)
+   */
+  readonly platformColors = this._platformColors.asReadonly();
 
   // ==========================================================================
   // COMPUTED SIGNALS
@@ -171,7 +174,7 @@ export class ThemeService {
     if (this._isDynamicTheme()) {
       return this._themeColors().background || this._themeColors().primary;
     }
-    return this.isDarkMode() ? '#000000' : '#ffffff';
+    return this.isDarkMode() ? TEXT_ON_DARK : TEXT_ON_LIGHT;
   });
 
   // ==========================================================================
@@ -278,11 +281,23 @@ export class ThemeService {
   }
 
   /**
+   * Set admin-configured platform default colors.
+   * 
+   * Applied whenever no song/album/artist theme is active. The reactive theme
+   * effect re-applies the resolved palette to the CSS custom properties.
+   * 
+   * @param colors - Platform color palette
+   */
+  setPlatformColors(colors: ThemeColors): void {
+    this._platformColors.set(normalizePalette(colors));
+  }
+
+  /**
    * Reset to default theme (no custom colors, no dynamic theme)
    */
   resetToDefault(): void {
     this._themeMode.set('dark');
-    this._themeColors.set(DEFAULT_COLORS);
+    this._themeColors.set(DEFAULT_PLATFORM_COLORS);
     this._isDynamicTheme.set(false);
     this._customColors.set({});
     this.saveThemePreference();
@@ -319,7 +334,7 @@ export class ThemeService {
         const themeColors = data['themeColors'] as ThemeColors | undefined;
         
         if (themeColors && this.validateThemeColors(themeColors)) {
-          return themeColors;
+          return normalizePalette(themeColors);
         }
       }
     } catch (error) {
@@ -330,29 +345,54 @@ export class ThemeService {
   }
 
   /**
-   * Validate theme colors meet WCAG AA standards
+   * Validate theme colors meet WCAG AA standards.
+   * 
+   * Accepts partial palettes read from Firestore — legacy documents may only
+   * carry primary/secondary/accent (the third hue was renamed to `tertiary`).
+   * Foreground and container fields are validated when present and defaulted
+   * by `normalizePalette()` otherwise.
    * 
    * @param colors - Theme colors to validate
    * @returns Whether colors are valid
    */
-  private validateThemeColors(colors: ThemeColors): boolean {
+  private validateThemeColors(colors: Partial<ThemeColors>): boolean {
+    // Legacy documents stored the tertiary hue under `accent`.
+    const legacy = colors as Partial<ThemeColors> & { accent?: string };
+    const tertiary = colors.tertiary ?? legacy.accent;
+
     // Basic validation - ensure required fields exist
-    if (!colors.primary || !colors.secondary || !colors.accent) {
+    if (!colors.primary || !colors.secondary || !tertiary) {
       return false;
     }
-    
+
     // Validate hex format
     const hexRegex = /^#[0-9A-F]{6}$/i;
-    if (!hexRegex.test(colors.primary) || 
-        !hexRegex.test(colors.secondary) || 
-        !hexRegex.test(colors.accent)) {
+    if (
+      !hexRegex.test(colors.primary) ||
+      !hexRegex.test(colors.secondary) ||
+      !hexRegex.test(tertiary)
+    ) {
       return false;
     }
-    
+
+    // Optional foreground/container colors must be valid hex when present.
+    const optionalColors = [
+      colors.foregroundPrimary,
+      colors.foregroundSecondary,
+      colors.foregroundTertiary,
+      colors.containerPrimary,
+      colors.containerSecondary,
+      colors.containerTertiary,
+    ] as const;
+
+    if (optionalColors.some((color) => color !== undefined && !hexRegex.test(color))) {
+      return false;
+    }
+
     // Validate contrast if background is provided
     if (colors.background) {
-      const textOnBg = this.getAccessibleTextColor(colors.background);
-      const contrast = this.getContrastRatio(textOnBg, colors.background);
+      const textOnBg = getAccessibleTextColor(colors.background);
+      const contrast = getContrastRatio(textOnBg, colors.background);
       
       // WCAG AA requires 4.5:1 for normal text
       if (contrast < 4.5) {
@@ -398,11 +438,27 @@ export class ThemeService {
   private applyTheme(): void {
     const isDark = this.isDarkMode();
     const theme = isDark ? 'dark' : 'light';
-    
+
     // Set data-theme attribute on document element
     if (this.document.documentElement) {
       this.document.documentElement.setAttribute('data-theme', theme);
+
+      // Write the resolved palette onto the design tokens so buttons, links,
+      // focus rings, and semantic states all follow platform/artist colors.
+      this.applyBrandColors(this.resolvePalette());
     }
+  }
+
+  /**
+   * Resolve the active color palette.
+   * 
+   * Content themes (song → album → artist) take priority; otherwise the
+   * admin-configured platform palette (or its static defaults) applies.
+   * 
+   * @returns The active palette
+   */
+  private resolvePalette(): ThemeColors {
+    return this._isDynamicTheme() ? this._themeColors() : this._platformColors();
   }
 
   /**
@@ -413,15 +469,88 @@ export class ThemeService {
   private applyDynamicColors(colors: ThemeColors): void {
     if (this.document.documentElement) {
       this.document.documentElement.setAttribute('data-dynamic-theme', 'true');
-      
-      // Set CSS custom properties for dynamic colors
-      this.document.documentElement.style.setProperty('--bg-dynamic-primary', colors.primary);
-      this.document.documentElement.style.setProperty('--bg-dynamic-secondary', colors.secondary);
-      this.document.documentElement.style.setProperty('--bg-dynamic-accent', colors.accent);
-      
-      if (colors.background) {
-        this.document.documentElement.style.setProperty('--bg-dynamic-background', colors.background);
-      }
+      this.applyBrandColors(colors);
+    }
+  }
+
+  /**
+   * Write a color palette onto the application's CSS custom properties.
+   * 
+   * Maps each brand hue to its semantic design tokens:
+   * - primary/secondary/tertiary  → --accent-primary/secondary/tertiary
+   * - tertiary                    → --color-error (danger semantic)
+   * - foregroundPrimary/Secondary/Tertiary → --text-on-accent/secondary/tertiary
+   * - containerPrimary/Secondary/Tertiary  → --bg-container-* with derived
+   *   --text-on-container-* text (WCAG luminance)
+   * Plus the dynamic background tokens and the Material M3 system tokens so
+   * both the hand-rolled components and Material components follow the palette.
+   * 
+   * @param colors - Palette to apply
+   */
+  private applyBrandColors(colors: ThemeColors): void {
+    const el = this.document.documentElement;
+
+    if (!el) {
+      return;
+    }
+
+    // Resolve against the platform defaults so every optional foreground and
+    // container field has a hex to apply (normalizePalette guarantees this,
+    // but keep the fallback here for defensive safety).
+    const resolved = { ...DEFAULT_PLATFORM_COLORS, ...colors } as Required<ThemeColors>;
+
+    // Base hues
+    el.style.setProperty('--accent-primary', resolved.primary);
+    el.style.setProperty('--accent-secondary', resolved.secondary);
+    el.style.setProperty('--accent-tertiary', resolved.tertiary);
+    el.style.setProperty('--color-error', resolved.tertiary);
+    el.style.setProperty('--border-focus', resolved.primary);
+
+    // Foreground (text) colors
+    el.style.setProperty('--text-on-accent', resolved.foregroundPrimary);
+    el.style.setProperty('--text-on-secondary', resolved.foregroundSecondary);
+    el.style.setProperty('--text-on-tertiary', resolved.foregroundTertiary);
+    el.style.setProperty('--text-on-danger', resolved.foregroundTertiary);
+
+    // Container (tinted surface) colors + derived on-container text
+    const containers: readonly (readonly [string, string])[] = [
+      ['primary', resolved.containerPrimary],
+      ['secondary', resolved.containerSecondary],
+      ['tertiary', resolved.containerTertiary],
+    ];
+    for (const [name, color] of containers) {
+      el.style.setProperty(`--bg-container-${name}`, color);
+      el.style.setProperty(`--text-on-container-${name}`, getAccessibleTextColor(color));
+    }
+
+    // Dynamic background tokens consumed by context-aware surfaces.
+    el.style.setProperty('--bg-dynamic-primary', resolved.primary);
+    el.style.setProperty('--bg-dynamic-secondary', resolved.secondary);
+    el.style.setProperty('--bg-dynamic-accent', resolved.tertiary);
+
+    el.style.setProperty('--bg-dynamic-background', resolved.background);
+
+    // Material M3 system tokens so Material components inherit the palette.
+    const materialTokens: readonly (readonly [string, string])[] = [
+      ['--mat-sys-primary', resolved.primary],
+      ['--mat-sys-on-primary', resolved.foregroundPrimary],
+      ['--mat-sys-primary-container', resolved.containerPrimary],
+      ['--mat-sys-on-primary-container', getAccessibleTextColor(resolved.containerPrimary)],
+      ['--mat-sys-secondary', resolved.secondary],
+      ['--mat-sys-on-secondary', resolved.foregroundSecondary],
+      ['--mat-sys-secondary-container', resolved.containerSecondary],
+      ['--mat-sys-on-secondary-container', getAccessibleTextColor(resolved.containerSecondary)],
+      ['--mat-sys-tertiary', resolved.tertiary],
+      ['--mat-sys-on-tertiary', resolved.foregroundTertiary],
+      ['--mat-sys-tertiary-container', resolved.containerTertiary],
+      ['--mat-sys-on-tertiary-container', getAccessibleTextColor(resolved.containerTertiary)],
+      ['--mat-sys-error', resolved.tertiary],
+      ['--mat-sys-on-error', resolved.foregroundTertiary],
+      ['--mat-sys-error-container', resolved.containerTertiary],
+      ['--mat-sys-on-error-container', getAccessibleTextColor(resolved.containerTertiary)],
+    ];
+    for (const [token, value] of materialTokens) {
+      el.style.setProperty(token, value);
     }
   }
 
@@ -433,10 +562,10 @@ export class ThemeService {
       // Try to load from Firestore if user is authenticated
       const user = await this.authService.currentUser();
       if (user) {
-        await this.loadFromFirestore(user.uid);
+        await this.loadFromFirestore(user.userId);
         return;
       }
-    } catch (error) {
+    } catch {
       console.warn('Failed to load theme from Firestore, falling back to localStorage');
     }
     
@@ -458,10 +587,10 @@ export class ThemeService {
       // Try to save to Firestore if user is authenticated
       const user = await this.authService.currentUser();
       if (user) {
-        await this.saveToFirestore(user.uid, preference);
+        await this.saveToFirestore(user.userId, preference);
         return;
       }
-    } catch (error) {
+    } catch {
       console.warn('Failed to save theme to Firestore, falling back to localStorage');
     }
     
@@ -472,7 +601,7 @@ export class ThemeService {
   /**
    * Load theme preference from Firestore
    * 
-   * @param userId - Firebase user ID
+   * @param userId - Public application user ID
    */
   private async loadFromFirestore(userId: string): Promise<void> {
     try {
@@ -522,7 +651,7 @@ export class ThemeService {
   /**
    * Save theme preference to Firestore
    * 
-   * @param userId - Firebase user ID
+   * @param userId - Public application user ID
    * @param preference - Theme preference to save
    */
   private async saveToFirestore(userId: string, preference: ThemePreference): Promise<void> {
@@ -559,62 +688,4 @@ export class ThemeService {
     }
   }
 
-  // ==========================================================================
-  // WCAG UTILITY METHODS (re-exported from color-extractor)
-  // ==========================================================================
-  
-  /**
-   * Calculate contrast ratio between two colors
-   */
-  private getContrastRatio(foreground: string, background: string): number {
-    const lum1 = this.getRelativeLuminance(foreground);
-    const lum2 = this.getRelativeLuminance(background);
-    
-    const lighter = Math.max(lum1, lum2);
-    const darker = Math.min(lum1, lum2);
-    
-    return (lighter + 0.05) / (darker + 0.05);
-  }
-
-  /**
-   * Calculate relative luminance of a color
-   */
-  private getRelativeLuminance(hex: string): number {
-    const rgb = this.hexToRgb(hex);
-    
-    if (!rgb) {
-      return 0;
-    }
-    
-    const { r, g, b } = rgb;
-    
-    const normalize = (c: number) => {
-      c = c / 255;
-      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    };
-    
-    return 0.2126 * normalize(r) + 0.7152 * normalize(g) + 0.0722 * normalize(b);
-  }
-
-  /**
-   * Convert hex color to RGB
-   */
-  private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16),
-    } : null;
-  }
-
-  /**
-   * Get accessible text color for a given background
-   */
-  private getAccessibleTextColor(backgroundColor: string): string {
-    const luminance = this.getRelativeLuminance(backgroundColor);
-    
-    return luminance > 0.179 ? '#000000' : '#ffffff';
-  }
 }

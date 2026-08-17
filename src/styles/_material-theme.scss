@@ -1,0 +1,160 @@
+// ============================================================================
+// ANGULAR MATERIAL M3 THEME — My Songs Platform
+// Phase 0: Material Foundation
+//
+// Maps the My Songs design tokens (see _variables.scss) onto Material's M3
+// system tokens (--mat-sys-*) so every Material component inherits the brand
+// look and feel: near-white cyan primary, cyan secondary, brand red
+// error/tertiary, pure-black dark surfaces, and the Inter / Hanken Grotesk
+// type stack (never the default Roboto).
+// ============================================================================
+
+@use '@angular/material' as mat;
+
+// ----------------------------------------------------------------------------
+// 1. BASE PALETTES
+// ----------------------------------------------------------------------------
+// M3 derives its full tone set from these palettes; the exact brand hexes are
+// pinned below via system-token overrides so the brand colors never drift.
+$primary-palette: mat.$cyan-palette;
+$tertiary-palette: mat.$red-palette;
+
+// ----------------------------------------------------------------------------
+// 2. TYPOGRAPHY
+// ----------------------------------------------------------------------------
+$base-typography: (
+  plain-family: var(--font-family-primary),
+  brand-family: var(--font-family-display),
+  bold-weight: 700,
+  medium-weight: 500,
+  regular-weight: 400,
+);
+
+// ----------------------------------------------------------------------------
+// 3. THEME CONFIGS (dark default + light)
+// ----------------------------------------------------------------------------
+// `mat.theme()` consumes the config map directly (color/typography/density);
+// `mat.define-theme()` returns a theme object used only by per-component
+// `mat.*-theme()` mixins, so it is intentionally not used here.
+$dark-theme: (
+  color: (
+    theme-type: dark,
+    primary: $primary-palette,
+    tertiary: $tertiary-palette,
+  ),
+  typography: $base-typography,
+  density: (scale: 0),
+);
+
+$light-theme: (
+  color: (
+    theme-type: light,
+    primary: $primary-palette,
+    tertiary: $tertiary-palette,
+  ),
+  typography: $base-typography,
+  density: (scale: 0),
+);
+
+// ----------------------------------------------------------------------------
+// 4. DARK SYSTEM-TOKEN OVERRIDES (default)
+// ----------------------------------------------------------------------------
+$dark-system-overrides: (
+  // Surfaces mirror the dark background hierarchy in _variables.scss.
+  background: #000000,
+  surface: #000000,
+  surface-dim: #000000,
+  surface-bright: #2a2a2a,
+  surface-container-lowest: #000000,
+  surface-container-low: #0a0a0a,
+  surface-container: #141414,
+  surface-container-high: #1a1a1a,
+  surface-container-highest: #2a2a2a,
+  on-surface: #ffffff,
+  on-surface-variant: #b3b3b3,
+  surface-variant: #1a1a1a,
+  on-background: #ffffff,
+  scrim: #000000,
+  shadow: #000000,
+
+  // Brand accents.
+  primary: #C5FCFB,
+  on-primary: #000000,
+  primary-container: #C5FCFB,
+  on-primary-container: #000000,
+  secondary: #2EF8FF,
+  on-secondary: #000000,
+  secondary-container: #2EF8FF,
+  on-secondary-container: #000000,
+  tertiary: #e63946,
+  on-tertiary: #ffffff,
+  tertiary-container: #e63946,
+  on-tertiary-container: #ffffff,
+  error: #e63946,
+  on-error: #ffffff,
+  error-container: #e63946,
+  on-error-container: #ffffff,
+
+  // Borders mirror --border-primary / --border-secondary.
+  outline: #2a2a2a,
+  outline-variant: #333333,
+);
+
+// ----------------------------------------------------------------------------
+// 5. LIGHT SYSTEM-TOKEN OVERRIDES
+// ----------------------------------------------------------------------------
+$light-system-overrides: (
+  background: #ffffff,
+  surface: #ffffff,
+  surface-dim: #f5f5f5,
+  surface-bright: #ffffff,
+  surface-container-lowest: #ffffff,
+  surface-container-low: #f5f5f5,
+  surface-container: #e8e8e8,
+  surface-container-high: #ffffff,
+  surface-container-highest: #d4d4d4,
+  on-surface: #000000,
+  on-surface-variant: #4a4a4a,
+  surface-variant: #e5e5e5,
+  on-background: #000000,
+  scrim: #000000,
+  shadow: #000000,
+
+  primary: #C5FCFB,
+  on-primary: #000000,
+  primary-container: #C5FCFB,
+  on-primary-container: #000000,
+  secondary: #2EF8FF,
+  on-secondary: #000000,
+  secondary-container: #2EF8FF,
+  on-secondary-container: #000000,
+  tertiary: #e63946,
+  on-tertiary: #ffffff,
+  tertiary-container: #e63946,
+  on-tertiary-container: #ffffff,
+  error: #e63946,
+  on-error: #ffffff,
+  error-container: #e63946,
+  on-error-container: #ffffff,
+
+  outline: #d4d4d4,
+  outline-variant: #e5e5e5,
+);
+
+// ----------------------------------------------------------------------------
+// 6. APPLY
+// ----------------------------------------------------------------------------
+
+// Dark is the platform default (pure black canvas).
+html {
+  color-scheme: dark;
+  @include mat.theme($dark-theme, $overrides: $dark-system-overrides);
+  @include mat.strong-focus-indicators();
+}
+
+// Light mode — toggled by ThemeService which sets `data-theme='light'` on the
+// document element (see applyTheme() in theme.service.ts).
+[data-theme='light'] {
+  color-scheme: light;
+  @include mat.theme($light-theme, $overrides: $light-system-overrides);
+}

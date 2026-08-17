@@ -3,6 +3,9 @@
 // Phase P003A - Design System Foundation
 // ============================================================================
 
+// Angular Material M3 theme (must load first so `@use` precedes all rules).
+@use './styles/material-theme';
+
 // ============================================================================
 // 1. DESIGN SYSTEM FOUNDATION
 // ============================================================================
@@ -12,6 +15,20 @@
 
 // Transition & Animation Utilities
 @import 'styles/transitions';
+
+// ============================================================================
+// 2. SHARED COMPONENT LAYER
+// ============================================================================
+
+// Global (unscoped) component classes — buttons, forms, tables, overlays,
+// feedback, and layout primitives. Imported here so every component template
+// can use them without duplicating styles.
+@import 'styles/buttons';
+@import 'styles/forms';
+@import 'styles/tables';
+@import 'styles/overlays';
+@import 'styles/feedback';
+@import 'styles/layout';
 
 // ============================================================================
 // 2. GLOBAL STYLES

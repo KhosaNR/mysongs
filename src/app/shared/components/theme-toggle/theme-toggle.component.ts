@@ -23,7 +23,7 @@ import { ThemeService } from '../../../core/services/theme.service';
  * - Smooth transitions between themes
  */
 @Component({
-  selector: 'lb-theme-toggle',
+  selector: 'app-theme-toggle',
   standalone: true,
   template: `
     <button

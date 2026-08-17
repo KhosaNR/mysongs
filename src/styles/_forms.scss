@@ -1,0 +1,115 @@
+// ============================================================================
+// DESIGN SYSTEM: Form controls (shared component layer)
+// Phase P003A
+//
+// Usage:
+//   <div class="form-field">
+//     <label for="x">Name *</label>
+//     <input id="x" class="form-field__control" ... />
+//     <span class="form-field__error">Required</span>
+//   </div>
+//
+// Controls must opt in explicitly via `.form-field__control` (no implicit
+// descendant styling) so page-specific forms never collide with the shared
+// layer.
+// ============================================================================
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+
+  label {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+  }
+}
+
+.form-field__control {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-family-primary);
+  font-size: var(--text-base);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+textarea.form-field__control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+input[type='color'].form-field__control {
+  height: var(--control-height);
+  padding: var(--space-1);
+  cursor: pointer;
+}
+
+// Invalid-state styling applied automatically to `[formField]` controls that
+// are both touched and invalid (see `provideSignalFormsConfig` in app.config.ts).
+.form-field__control.input-error {
+  border-color: var(--color-error);
+
+  &:focus {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 20%, transparent);
+  }
+}
+
+.form-field__error {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
+.form-field__hint {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+// ----------------------------------------------------------------------------
+// LAYOUT
+// ----------------------------------------------------------------------------
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+
+  &.three-col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    .form-row,
+    .form-row.three-col {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-primary);
+}

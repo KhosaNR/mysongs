@@ -1,0 +1,236 @@
+<div class="artist-management">
+  <div class="page-header">
+    <h2>Artist Management</h2>
+    <button class="btn btn--primary" (click)="openCreateForm()">+ Add Artist</button>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>{{ editingArtist() ? 'Edit Artist' : 'New Artist' }}</h3>
+
+        <form [formRoot]="artistForm" (submit)="saveArtist()">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="name">Name *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="name"
+                [formField]="artistForm.name"
+              />
+              <app-field-errors [field]="artistForm.name" />
+            </div>
+
+            <div class="form-field">
+              <label for="genre">Genre *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="genre"
+                [formField]="artistForm.genre"
+              />
+              <app-field-errors [field]="artistForm.genre" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="bio">Bio *</label>
+            <textarea
+              class="form-field__control"
+              id="bio"
+              [formField]="artistForm.bio"
+              rows="4"
+            ></textarea>
+            <app-field-errors [field]="artistForm.bio" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="email">Email</label>
+              <input
+                class="form-field__control"
+                type="email"
+                id="email"
+                [formField]="artistForm.email"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="phone">Phone</label>
+              <input
+                class="form-field__control"
+                type="tel"
+                id="phone"
+                [formField]="artistForm.phone"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="website">Website</label>
+            <input
+              class="form-field__control"
+              type="url"
+              id="website"
+              [formField]="artistForm.website"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="location">Location</label>
+            <input
+              class="form-field__control"
+              type="text"
+              id="location"
+              [formField]="artistForm.location"
+            />
+          </div>
+
+          <div class="form-section">
+            <h4>Theme Colors</h4>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="primaryColor">Primary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="primaryColor"
+                  [formField]="artistForm.primaryColor"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="secondaryColor">Secondary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="secondaryColor"
+                  [formField]="artistForm.secondaryColor"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="tertiaryColor">Tertiary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="tertiaryColor"
+                  [formField]="artistForm.tertiaryColor"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Social Links</h4>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="spotify">Spotify</label>
+                <input
+                  class="form-field__control"
+                  type="url"
+                  id="spotify"
+                  [formField]="artistForm.spotify"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="appleMusic">Apple Music</label>
+                <input
+                  class="form-field__control"
+                  type="url"
+                  id="appleMusic"
+                  [formField]="artistForm.appleMusic"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="youtube">YouTube</label>
+                <input
+                  class="form-field__control"
+                  type="url"
+                  id="youtube"
+                  [formField]="artistForm.youtube"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="instagram">Instagram</label>
+                <input
+                  class="form-field__control"
+                  type="url"
+                  id="instagram"
+                  [formField]="artistForm.instagram"
+                />
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="twitter">Twitter</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="twitter"
+                [formField]="artistForm.twitter"
+              />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn--secondary" (click)="closeForm()">Cancel</button>
+            <button type="submit" class="btn btn--primary" [disabled]="isLoading()">
+              {{ isLoading() ? 'Saving...' : 'Save Artist' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="artists-list">
+    @if (isLoading()) {
+      <div class="loading-state">Loading...</div>
+    } @else if (artists().length === 0) {
+      <div class="empty-state">
+        <p>No artists found. Create your first artist to get started.</p>
+      </div>
+    } @else {
+      <div class="artists-grid">
+        @for (artist of artists(); track artist.id) {
+          <div class="artist-card">
+            <div class="artist-header">
+              <h4>{{ artist.name?.trim() || artist.id }}</h4>
+              @if (artist.genre) {
+                <span class="artist-genre">{{ artist.genre }}</span>
+              }
+            </div>
+            <div class="artist-status">
+              <span class="status-badge" [class]="'status-' + (artist.artistStatus ?? 'approved')">
+                {{ artist.artistStatus ?? 'approved' }}
+              </span>
+            </div>
+            @if (artist.bio) {
+              <p class="artist-bio">{{ artist.bio }}</p>
+            }
+            <div class="artist-actions">
+              <button class="btn btn--secondary btn--sm" (click)="openEditForm(artist)">
+                Edit
+              </button>
+              <button class="btn btn--danger btn--sm" (click)="deleteArtist(artist)">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,45 @@
+<main class="artist-pending">
+  <div class="artist-pending__card">
+    <div class="artist-pending__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>
+    </div>
+
+    @switch (artistStatus) {
+      @case ('pending') {
+        <h1 class="artist-pending__title">Application Under Review</h1>
+        <p class="artist-pending__message">
+          Your artist application is being reviewed by our team. Once approved,
+          you'll be able to upload albums, tracks, and manage your profile from
+          your artist studio.
+        </p>
+      }
+      @case ('rejected') {
+        <h1 class="artist-pending__title">Application Not Approved</h1>
+        <p class="artist-pending__message">
+          Unfortunately your artist application was not approved. If you believe
+          this is a mistake, please contact support.
+        </p>
+      }
+      @case ('suspended') {
+        <h1 class="artist-pending__title">Account Suspended</h1>
+        <p class="artist-pending__message">
+          Your artist account has been suspended. If you have questions about this
+          action, please contact support.
+        </p>
+      }
+      @default {
+        <h1 class="artist-pending__title">Account Pending</h1>
+        <p class="artist-pending__message">
+          Your artist account is waiting for approval. You'll be able to access
+          your artist studio once an administrator approves your application.
+        </p>
+      }
+    }
+
+    <button type="button" class="btn btn--primary" (click)="goToExplore()">
+      Browse Music
+    </button>
+  </div>
+</main>

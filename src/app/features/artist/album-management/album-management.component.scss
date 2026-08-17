@@ -1,0 +1,242 @@
+.album-management {
+  padding: var(--space-6);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.empty-state .hint {
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
+}
+
+.albums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.album-card {
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--bg-secondary);
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: var(--accent-primary);
+  }
+
+  &.deleted {
+    opacity: 0.6;
+  }
+
+  mat-card-content {
+    padding: var(--space-3) var(--space-4);
+    flex: 1;
+
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .album-meta {
+      margin: var(--space-1) 0 0;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+  }
+
+  mat-card-actions {
+    margin: 0;
+    padding: 0 var(--space-3) var(--space-3);
+    border-top: 1px solid var(--border-primary);
+  }
+}
+
+.album-cover {
+  aspect-ratio: 1;
+  width: 100%;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+
+  mat-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    color: var(--text-secondary);
+  }
+}
+
+.deleted-badge {
+  display: inline-block;
+  margin-top: var(--space-1);
+  padding: 0.125rem 0.5rem;
+  background: var(--bg-error, rgba(230, 57, 70, 0.15));
+  color: var(--text-error, #e63946);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.conta {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+
+  &.deleted {
+    opacity: 0.6;
+  }
+}
+
+.conta-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.album-details-banner {
+  display: flex;
+  gap: var(--space-6);
+  padding: var(--space-5);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
+
+  .banner-cover {
+    width: 180px;
+    height: 180px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-primary);
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .banner-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    h3 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+
+  .banner-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+
+    span + span::before {
+      content: '·';
+      margin-right: var(--space-2);
+      color: var(--text-secondary);
+    }
+  }
+
+  .banner-credits {
+    p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+    p + p {
+      margin-top: var(--space-1);
+    }
+  }
+
+  .banner-track-count {
+    margin: var(--space-1) 0 0;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .banner-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+}
+
+.tracks-section {
+  padding: var(--space-5);
+
+  .tracks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+
+    h4 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+}
+
+table.data-table {
+  width: 100%;
+
+  .video-icon {
+    color: var(--accent-primary);
+    vertical-align: middle;
+  }
+
+  .muted {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .album-details-banner {
+    flex-direction: column;
+
+    .banner-cover {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1;
+      max-width: 280px;
+    }
+  }
+}

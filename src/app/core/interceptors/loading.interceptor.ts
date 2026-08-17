@@ -1,4 +1,4 @@
-import { inject, signal } from '@angular/core';
+import { signal } from '@angular/core';
 import {
   HttpRequest,
   HttpHandlerFn,

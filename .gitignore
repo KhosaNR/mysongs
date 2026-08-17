@@ -47,4 +47,11 @@ Thumbs.db
 src/environments/environment.ts
 src/environments/environment.development.ts
 src/environments/environment.prod.ts
+src/environments/environment.qa.ts
+src/environments/enviroment.qa.ts
 !src/environments/environment.example.ts
+
+# Standalone service-account files (private keys)
+*service-account*.json
+*service-account*.key
+/nul

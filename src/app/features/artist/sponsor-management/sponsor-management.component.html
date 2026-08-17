@@ -1,0 +1,140 @@
+<div class="sponsor-management">
+  <div class="page-header">
+    <h2>My Sponsors</h2>
+    <button class="btn btn--primary" (click)="openCreateForm()">+ New Sponsor</button>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="clearError()">×</button>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>{{ isEditMode() ? 'Edit Sponsor' : 'New Sponsor' }}</h3>
+        <form [formRoot]="sponsorForm" (submit)="submitForm()">
+          <div class="form-field">
+            <label for="name">Sponsor Name *</label>
+            <input
+              class="form-field__control"
+              type="text"
+              id="name"
+              [formField]="sponsorForm.name"
+            />
+            <app-field-errors [field]="sponsorForm.name" />
+          </div>
+          <div class="form-field">
+            <label for="description">Description</label>
+            <textarea
+              class="form-field__control"
+              id="description"
+              [formField]="sponsorForm.description"
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="logoUrl">Logo URL</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="logoUrl"
+                [formField]="sponsorForm.logoUrl"
+                placeholder="https://..."
+              />
+            </div>
+            <div class="form-field">
+              <label for="websiteUrl">Website URL</label>
+              <input
+                class="form-field__control"
+                type="url"
+                id="websiteUrl"
+                [formField]="sponsorForm.websiteUrl"
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="tier">Tier</label>
+            <select class="form-field__control" id="tier" [formField]="sponsorForm.tier">
+              <option value="bronze">Bronze</option>
+              <option value="silver">Silver</option>
+              <option value="gold">Gold</option>
+              <option value="platinum">Platinum</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="closeForm()"
+              [disabled]="isSubmitting()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn--primary" [disabled]="isSubmitting()">
+              @if (isSubmitting()) {
+                <span class="spinner-ring"></span>
+                Saving...
+              } @else {
+                {{ isEditMode() ? 'Update Sponsor' : 'Add Sponsor' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="sponsors-list">
+    @if (isLoading()) {
+      <div class="loading-state">Loading sponsors...</div>
+    } @else if (sponsors().length === 0) {
+      <div class="empty-state">
+        <p>No sponsors yet.</p>
+        <p class="hint">Add sponsors to showcase on your profile.</p>
+      </div>
+    } @else {
+      <div class="sponsors-grid">
+        @for (sponsor of sponsors(); track sponsor.id) {
+          <div class="sponsor-card" [class.deleted]="sponsor.isDeleted">
+            <div class="sponsor-header">
+              <span class="tier-badge" [style.background]="getTierColor(sponsor.tier)">{{
+                sponsor.tier
+              }}</span>
+              @if (sponsor.isDeleted) {
+                <span class="deleted-badge">Deleted</span>
+              }
+            </div>
+            <h3>{{ sponsor.name }}</h3>
+            @if (sponsor.description) {
+              <p class="sponsor-desc">{{ sponsor.description }}</p>
+            }
+            <div class="sponsor-links">
+              @if (sponsor.websiteUrl) {
+                <a [href]="sponsor.websiteUrl" target="_blank" rel="noopener">Website</a>
+              }
+            </div>
+            <div class="sponsor-actions">
+              <button class="btn btn--secondary btn--sm" (click)="openEditForm(sponsor)">
+                Edit
+              </button>
+              @if (sponsor.isDeleted) {
+                <button class="btn btn--secondary btn--sm" (click)="restoreSponsor(sponsor)">
+                  Restore
+                </button>
+              } @else {
+                <button class="btn btn--danger btn--sm" (click)="softDeleteSponsor(sponsor)">
+                  Delete
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

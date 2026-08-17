@@ -1,0 +1,126 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit Artist Profile' : 'New Artist' }}</h2>
+
+<form [formRoot]="artistForm" (submit)="save()">
+  <mat-dialog-content>
+    @if (error()) {
+      <div class="error-banner">
+        <p>{{ error() }}</p>
+        <button type="button" class="error-banner__dismiss" (click)="error.set(null)">×</button>
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="field-full">
+      <mat-label>Artist Name *</mat-label>
+      <input matInput [formField]="artistForm.name" />
+      <mat-error>{{ artistForm.name().errors()[0]?.message }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="field-full">
+      <mat-label>Biography</mat-label>
+      <textarea matInput [formField]="artistForm.bio" rows="4"></textarea>
+      <mat-error>{{ artistForm.bio().errors()[0]?.message }}</mat-error>
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Country</mat-label>
+        <input matInput [formField]="artistForm.country" placeholder="South Africa" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Genre</mat-label>
+        <input matInput [formField]="artistForm.genre" placeholder="Hip-Hop/Rap" />
+      </mat-form-field>
+    </div>
+
+    <div class="form-section">
+      <h4>Social Links</h4>
+      <mat-form-field appearance="outline" class="field-full">
+        <mat-label>Website</mat-label>
+        <input matInput [formField]="artistForm.website" placeholder="https://" />
+      </mat-form-field>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Facebook</mat-label>
+          <input matInput [formField]="artistForm.facebook" placeholder="https://" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Instagram</mat-label>
+          <input matInput [formField]="artistForm.instagram" placeholder="https://" />
+        </mat-form-field>
+      </div>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Twitter / X</mat-label>
+          <input matInput [formField]="artistForm.twitter" placeholder="https://" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>YouTube</mat-label>
+          <input matInput [formField]="artistForm.youtube" placeholder="https://" />
+        </mat-form-field>
+      </div>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Spotify</mat-label>
+          <input matInput [formField]="artistForm.spotify" placeholder="https://" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Apple Music</mat-label>
+          <input matInput [formField]="artistForm.appleMusic" placeholder="https://" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>Theme Colors</h4>
+      <div class="form-row three-col">
+        <div class="form-field">
+          <label for="primaryColor">Primary</label>
+          <input class="form-field__control" type="color" id="primaryColor" [formField]="artistForm.primaryColor" />
+        </div>
+        <div class="form-field">
+          <label for="secondaryColor">Secondary</label>
+          <input class="form-field__control" type="color" id="secondaryColor" [formField]="artistForm.secondaryColor" />
+        </div>
+        <div class="form-field">
+          <label for="tertiaryColor">Tertiary</label>
+          <input class="form-field__control" type="color" id="tertiaryColor" [formField]="artistForm.tertiaryColor" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>Profile Photo</h4>
+      <div class="photo-section">
+        <div class="photo-preview">
+          @if (photoPreview()) {
+            <img [src]="photoPreview()" alt="Profile photo preview" />
+          } @else {
+            <div class="photo-placeholder"><mat-icon>person</mat-icon></div>
+          }
+        </div>
+        <div class="photo-actions">
+          <input type="file" id="photoFile" accept="image/*" (change)="onPhotoSelected($event)" />
+          <label for="photoFile" class="btn btn--secondary">Choose Photo</label>
+          @if (isUploadingPhoto()) {
+            <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
+            <p class="progress-text">Uploading photo... {{ uploadProgress() }}%</p>
+          }
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="close()" [disabled]="isSaving()">
+      Cancel
+    </button>
+    <button mat-flat-button type="submit" [disabled]="isSaving()">
+      @if (isSaving()) {
+        <mat-spinner diameter="16"></mat-spinner>
+        Saving...
+      } @else {
+        {{ isEditMode ? 'Update Profile' : 'Create Artist' }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

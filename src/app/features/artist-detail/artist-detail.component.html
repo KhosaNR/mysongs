@@ -1,0 +1,390 @@
+<main class="artist-detail-page">
+  @if (isLoading()) {
+    <div class="artist-detail-page__loading">
+      <app-loading-spinner size="lg" aria-label="Loading artist" />
+    </div>
+  } @else if (error(); as message) {
+    <div class="error-container">
+      <app-error-banner [message]="message" type="error" />
+    </div>
+  } @else if (artist(); as artist) {
+    <section class="artist-detail__header">
+      @if (artist.photoURL) {
+        <img [src]="artist.photoURL" [alt]="artist.name + ' photo'" class="artist-detail__photo" loading="lazy" />
+      } @else {
+        <div class="artist-detail__photo artist-detail__photo--placeholder">
+          {{ artist.name.charAt(0)?.toUpperCase() || 'A' }}
+        </div>
+      }
+
+      <div class="artist-detail__info">
+        <h1 class="artist-detail__name">{{ artist.name }}</h1>
+        @if (artist.genre || artist.country) {
+          <p class="artist-detail__meta">
+            @if (artist.genre) { {{ artist.genre }} }
+            @if (artist.genre && artist.country) { · }
+            @if (artist.country) { {{ artist.country }} }
+          </p>
+        }
+        @if (artist.bio) {
+          <p class="artist-detail__bio">{{ artist.bio }}</p>
+        }
+        @if (socials().length > 0) {
+          <div class="artist-detail__socials">
+            @for (social of socials(); track social.label) {
+              <a
+                class="artist-detail__social"
+                [href]="social.url"
+                target="_blank"
+                rel="noopener noreferrer"
+              >{{ social.label }}</a>
+            }
+          </div>
+        }
+      </div>
+
+      @if (canEdit()) {
+        <button type="button" class="btn btn--secondary btn--sm artist-detail__edit-profile" (click)="openEditArtist()">
+          <span class="material-icons" aria-hidden="true">edit</span>
+          Edit Profile
+        </button>
+      }
+    </section>
+
+    <nav class="artist-detail__tabs" role="tablist" aria-label="Artist catalog">
+      @for (tab of tabs; track tab.key) {
+        <button
+          type="button"
+          class="artist-detail__tab"
+          [class.artist-detail__tab--active]="activeTab() === tab.key"
+          (click)="setTab(tab.key)"
+          role="tab"
+          [attr.aria-selected]="activeTab() === tab.key"
+        >{{ tab.label }}</button>
+      }
+    </nav>
+
+    <div class="artist-detail__search">
+      <app-search-input
+        placeholder="Search albums, songs, singles..."
+        ariaLabel="Search this artist's catalog"
+        [(value)]="searchQuery"
+        (clear)="clearSearch()"
+      />
+    </div>
+
+    @if (activeTab() === 'albums') {
+      <section class="artist-detail__section">
+        <div class="artist-detail__section-header">
+          <h2 class="artist-detail__section-title">Albums</h2>
+          <div class="artist-detail__section-actions">
+            @if (albums().length > 0) {
+              <span class="artist-detail__count-badge">{{ albums().length }} {{ albums().length === 1 ? 'album' : 'albums' }}</span>
+            }
+            @if (canEdit()) {
+              <button type="button" class="btn btn--primary btn--sm" (click)="openCreateAlbum()">
+                <span class="material-icons" aria-hidden="true">add</span>
+                Add Album
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (filteredAlbums().length === 0) {
+          <app-empty-state icon="album" title="No albums found" description="Try a different search or check back soon" />
+        } @else {
+          <div class="artist-detail__albums">
+            @for (album of filteredAlbums(); track album.id) {
+              <div class="artist-detail__album-card">
+                <a class="artist-detail__album" [routerLink]="['/album', album.id]">
+                  @if (album.artworkUrl) {
+                    <img [src]="album.artworkUrl" [alt]="album.title + ' album artwork'" class="artist-detail__album-art" loading="lazy" />
+                  } @else {
+                    <div class="artist-detail__album-art artist-detail__album-art--placeholder">
+                      <span class="material-icons" aria-hidden="true">album</span>
+                    </div>
+                  }
+                  <span class="artist-detail__album-title">{{ album.title }}</span>
+                  @if (album.releaseDate) {
+                    <span class="artist-detail__album-year">{{ album.releaseDate | date: 'yyyy' }}</span>
+                  }
+                </a>
+                @if (canEdit()) {
+                  <button
+                    type="button"
+                    class="artist-detail__album-edit"
+                    (click)="openEditAlbum(album)"
+                    [attr.aria-label]="'Edit album ' + album.title"
+                  >
+                    <span class="material-icons" aria-hidden="true">edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="artist-detail__album-delete"
+                    (click)="deleteAlbum(album)"
+                    [attr.aria-label]="'Delete album ' + album.title"
+                  >
+                    <span class="material-icons" aria-hidden="true">delete</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <p class="artist-detail__singles-link">
+          Can&rsquo;t find the song, go to <a href="#" (click)="setTab('singles'); $event.preventDefault()">Singles</a>
+        </p>
+      </section>
+    }
+
+    @if (activeTab() === 'songs') {
+      <section class="artist-detail__section">
+        <div class="artist-detail__section-header">
+          <h2 class="artist-detail__section-title">Songs</h2>
+          <div class="artist-detail__section-actions">
+            @if (songs().length > 0) {
+              <span class="artist-detail__count-badge">{{ songs().length }} {{ songs().length === 1 ? 'song' : 'songs' }}</span>
+            }
+            @if (filteredSongs().length > 0) {
+              <button type="button" class="btn btn--secondary btn--sm" (click)="playAll()">
+                <span class="material-icons" aria-hidden="true">play_arrow</span>
+                Play All Songs
+              </button>
+            }
+            @if (canEdit()) {
+              <button type="button" class="btn btn--primary btn--sm" (click)="openCreateSong('album')">
+                <span class="material-icons" aria-hidden="true">add</span>
+                Add Song
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (filteredSongs().length === 0) {
+          <app-empty-state icon="music" title="No songs found" description="Try a different search or check back soon" />
+        } @else {
+          <div class="artist-detail__tracks">
+            @for (song of filteredSongs(); track song.songId) {
+              <app-track-row
+                [song]="song"
+                [artworkUrl]="song.artworkUrl || null"
+                [artistName]="artist.name"
+                [albumTitle]="getAlbumTitle(song.albumId)"
+                [canEdit]="canEdit()"
+                [canDelete]="canEdit()"
+                (playRequested)="onPlayTrack($event)"
+                (addToPlaylist)="onAddToPlaylist($event)"
+                (editRequested)="openEditSong($event)"
+                (deleteRequested)="deleteSong($event)"
+              />
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'singles') {
+      <section class="artist-detail__section">
+        <div class="artist-detail__section-header">
+          <h2 class="artist-detail__section-title">Singles</h2>
+          <div class="artist-detail__section-actions">
+            @if (singles().length > 0) {
+              <span class="artist-detail__count-badge">{{ singles().length }} {{ singles().length === 1 ? 'single' : 'singles' }}</span>
+            }
+            @if (canEdit()) {
+              <button type="button" class="btn btn--primary btn--sm" (click)="openCreateSong('single')">
+                <span class="material-icons" aria-hidden="true">add</span>
+                Add Single
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (filteredSingles().length === 0) {
+          <app-empty-state icon="music" title="No singles found" description="Try a different search or check back soon" />
+        } @else {
+          <div class="artist-detail__tracks">
+            @for (song of filteredSingles(); track song.songId) {
+              <app-track-row
+                [song]="song"
+                [artworkUrl]="song.artworkUrl || null"
+                [artistName]="artist.name"
+                [canEdit]="canEdit()"
+                [canDelete]="canEdit()"
+                (playRequested)="onPlayTrack($event)"
+                (addToPlaylist)="onAddToPlaylist($event)"
+                (editRequested)="openEditSong($event)"
+                (deleteRequested)="deleteSong($event)"
+              />
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'videos') {
+      <section class="artist-detail__section">
+        <div class="artist-detail__section-header">
+          <h2 class="artist-detail__section-title">Videos</h2>
+          <div class="artist-detail__section-actions">
+            @if (videoSongs().length > 0) {
+              <span class="artist-detail__count-badge">{{ videoSongs().length }} {{ videoSongs().length === 1 ? 'video' : 'videos' }}</span>
+            }
+            @if (canEdit()) {
+              <button type="button" class="btn btn--primary btn--sm" (click)="openCreateSong('album')">
+                <span class="material-icons" aria-hidden="true">add</span>
+                Add Song
+              </button>
+            }
+          </div>
+        </div>
+        @if (filteredVideos().length === 0) {
+          <app-empty-state icon="music" title="No videos found" description="Try a different search or check back soon" />
+        } @else {
+          <div class="artist-detail__videos">
+            @for (song of filteredVideos(); track song.songId) {
+              <div class="artist-detail__video-card">
+                <div class="artist-detail__video-embed">
+                  <iframe [src]="'https://www.youtube-nocookie.com/embed/' + song.youtubeVideoId + '?autoplay=0&rel=0'" [title]="song.title + ' video'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+                </div>
+                <div class="artist-detail__video-info">
+                  <h3 class="artist-detail__video-title">{{ song.title }}</h3>
+                  <span class="artist-detail__video-year">{{ artist.name }}</span>
+                </div>
+                @if (canEdit()) {
+                  <div class="artist-detail__video-actions">
+                    <button
+                      type="button"
+                      class="artist-detail__video-action"
+                      (click)="openEditSong(song)"
+                      [attr.aria-label]="'Edit song ' + song.title"
+                    >
+                      <span class="material-icons" aria-hidden="true">edit</span>
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="artist-detail__video-action artist-detail__video-action--delete"
+                      (click)="deleteSong(song)"
+                      [attr.aria-label]="'Delete song ' + song.title"
+                    >
+                      <span class="material-icons" aria-hidden="true">delete</span>
+                      Delete
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'lyrics') {
+      <section class="artist-detail__section">
+        <div class="artist-detail__section-header">
+          <h2 class="artist-detail__section-title">Lyrics</h2>
+          <div class="artist-detail__section-actions">
+            @if (lyricsSongs().length > 0) {
+              <span class="artist-detail__count-badge">{{ lyricsSongs().length }} {{ lyricsSongs().length === 1 ? 'lyric' : 'lyrics' }}</span>
+            }
+            @if (canEdit()) {
+              <button type="button" class="btn btn--primary btn--sm" (click)="openCreateSong('album')">
+                <span class="material-icons" aria-hidden="true">add</span>
+                Add Song
+              </button>
+            }
+          </div>
+        </div>
+        @if (filteredLyrics().length === 0) {
+          <app-empty-state icon="search" title="No lyrics found" description="Try a different search or check back soon" />
+        } @else {
+          <div class="artist-detail__tracks">
+            @for (song of filteredLyrics(); track song.songId) {
+              <app-track-row
+                [song]="song"
+                [artworkUrl]="song.artworkUrl || null"
+                [artistName]="artist.name"
+                [albumTitle]="getAlbumTitle(song.albumId)"
+                [canEdit]="canEdit()"
+                [canDelete]="canEdit()"
+                (playRequested)="onPlayTrack($event)"
+                (addToPlaylist)="onAddToPlaylist($event)"
+                (editRequested)="openEditSong($event)"
+                (deleteRequested)="deleteSong($event)"
+              />
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'collections') {
+      <section class="artist-detail__section">
+        <div class="artist-detail__section-header">
+          <h2 class="artist-detail__section-title">Collections</h2>
+          <div class="artist-detail__section-actions">
+            @if (collections().length > 0) {
+              <span class="artist-detail__count-badge">{{ collections().length }} {{ collections().length === 1 ? 'collection' : 'collections' }}</span>
+            }
+            @if (canEdit()) {
+              <button type="button" class="btn btn--primary btn--sm" (click)="openCreateCollection()">
+                <span class="material-icons" aria-hidden="true">add</span>
+                Add Collection
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (filteredCollections().length === 0) {
+          <app-empty-state icon="queue_music" title="No collections found" description="Curated song sets from this artist" />
+        } @else {
+          <div class="artist-detail__albums">
+            @for (collection of filteredCollections(); track collection.id) {
+              <div class="artist-detail__album-card">
+                <a class="artist-detail__album" [routerLink]="['/collection', collection.id]">
+                  <div class="artist-detail__album-art artist-detail__album-art--placeholder">
+                    <span class="material-icons" aria-hidden="true">collections_bookmark</span>
+                  </div>
+                  <span class="artist-detail__album-title">{{ collection.name }}</span>
+                  <span class="artist-detail__album-year">
+                    {{ collection.songIds.length }} track{{ collection.songIds.length === 1 ? '' : 's' }}
+                    @if (collection.description) {
+                      · {{ collection.description }}
+                    }
+                  </span>
+                </a>
+                @if (canEdit()) {
+                  <button
+                    type="button"
+                    class="artist-detail__album-edit"
+                    (click)="openEditCollection(collection)"
+                    [attr.aria-label]="'Edit collection ' + collection.name"
+                  >
+                    <span class="material-icons" aria-hidden="true">edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="artist-detail__album-delete"
+                    (click)="deleteCollection(collection)"
+                    [attr.aria-label]="'Delete collection ' + collection.name"
+                  >
+                    <span class="material-icons" aria-hidden="true">delete</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+
+  <app-add-to-playlist-dialog
+    [isOpen]="isPlaylistDialogOpen()"
+    [songIds]="playlistSongIds()"
+    (closed)="closePlaylistDialog()"
+  />
+</main>
+

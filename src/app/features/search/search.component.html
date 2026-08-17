@@ -1,0 +1,148 @@
+<div class="search-page">
+  <div class="search-page__header">
+    <h1 class="search-page__title">Search</h1>
+    @if (searchQuery().trim()) {
+      <p class="search-page__summary">Results for &ldquo;{{ searchQuery().trim() }}&rdquo;</p>
+    }
+  </div>
+
+  @if (isInitializing()) {
+    <div class="search-page__loading">
+      <app-loading-spinner [size]="'lg'" [label]="'Loading search...'" />
+    </div>
+  } @else if (searchQuery().trim()) {
+    @if (hasResults()) {
+      <div class="search-page__tabs">
+        @for (tab of tabs; track tab.key) {
+          <button
+            type="button"
+            class="search-page__tab"
+            [class.search-page__tab--active]="activeTab() === tab.key"
+            (click)="setTab(tab.key)"
+          >
+            {{ tab.label }}
+            @if (tab.key === 'artists' && artistResults().length > 0) {
+              <span class="search-page__tab-count">{{ artistResults().length }}</span>
+            }
+            @if (tab.key === 'albums' && albumResults().length > 0) {
+              <span class="search-page__tab-count">{{ albumResults().length }}</span>
+            }
+            @if (tab.key === 'tracks' && trackResults().length > 0) {
+              <span class="search-page__tab-count">{{ trackResults().length }}</span>
+            }
+            @if (tab.key === 'lyrics' && lyricsResults().length > 0) {
+              <span class="search-page__tab-count">{{ lyricsResults().length }}</span>
+            }
+          </button>
+        }
+      </div>
+
+      <div class="search-page__results">
+        @if (activeTab() === 'all' || activeTab() === 'artists') {
+          @if (artistResults().length > 0) {
+            <div class="search-page__section">
+              @if (activeTab() === 'all') {
+                <h2 class="search-page__section-title">Artists</h2>
+              }
+              <div class="search-page__list">
+                @for (result of artistResults(); track result.data.item.artistId) {
+                  <app-artist-card
+                    [result]="result.data"
+                    [onClick]="() => openArtist(result.data.item)"
+                  />
+                }
+              </div>
+            </div>
+          }
+        }
+
+        @if (activeTab() === 'all' || activeTab() === 'albums') {
+          @if (albumResults().length > 0) {
+            <div class="search-page__section">
+              @if (activeTab() === 'all') {
+                <h2 class="search-page__section-title">Albums</h2>
+              }
+              <div class="search-page__album-grid">
+                @for (result of albumResults(); track result.data.item.albumId) {
+                  <button
+                    type="button"
+                    class="search-album-card"
+                    (click)="openAlbum(result.data.item)"
+                  >
+                    @if (result.data.item.artworkUrl) {
+                      <img
+                        [src]="result.data.item.artworkUrl"
+                        [alt]="result.data.item.title + ' album artwork'"
+                        class="search-album-card__art"
+                        loading="lazy"
+                      />
+                    } @else {
+                      <div class="search-album-card__art search-album-card__art--placeholder">
+                        <span class="material-icons" aria-hidden="true">album</span>
+                      </div>
+                    }
+                    <span class="search-album-card__title">{{ result.data.item.title }}</span>
+                    <span class="search-album-card__artist">{{ result.data.item.artistName }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        @if (activeTab() === 'all' || activeTab() === 'tracks') {
+          @if (trackResults().length > 0) {
+            <div class="search-page__section">
+              @if (activeTab() === 'all') {
+                <h2 class="search-page__section-title">Tracks</h2>
+              }
+              <div class="search-page__list">
+                @for (result of trackResults(); track result.data.item.songId) {
+                  <app-track-row
+                    [song]="result.data.item"
+                    [artistName]="result.data.item.artistName"
+                    [albumTitle]="result.data.item.albumName || ''"
+                    (addToPlaylist)="onAddToPlaylist($event)"
+                  />
+                }
+              </div>
+            </div>
+          }
+        }
+
+        @if (activeTab() === 'all' || activeTab() === 'lyrics') {
+          @if (lyricsResults().length > 0) {
+            <div class="search-page__section">
+              @if (activeTab() === 'all') {
+                <h2 class="search-page__section-title">Lyrics</h2>
+              }
+              <div class="search-page__list">
+                @for (result of lyricsResults(); track result) {
+                  <app-lyrics-snippet [result]="result.data" />
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    } @else {
+        <app-empty-state
+          [icon]="'search'"
+          [title]="'No results found'"
+          [description]="'Try adjusting your search terms or browse our catalog'"
+        />
+    }
+  } @else {
+    <app-empty-state
+      [icon]="'search'"
+      [title]="'Start searching'"
+      [description]="'Use the search bar above to find artists, tracks, and lyrics'"
+    />
+  }
+
+  <app-add-to-playlist-dialog
+    [isOpen]="isPlaylistDialogOpen()"
+    [songIds]="playlistSongIds()"
+    (closed)="closePlaylistDialog()"
+  />
+</div>

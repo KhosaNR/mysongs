@@ -1,0 +1,116 @@
+.collection-detail-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.collection-detail-page__loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.error-container {
+  padding: var(--space-4);
+}
+
+.collection-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.collection-detail__header {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+
+.collection-detail__art {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--accent-primary);
+}
+
+.collection-detail__art .material-icons {
+  font-size: 4rem;
+}
+
+.collection-detail__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.collection-detail__type {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.collection-detail__title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-normal);
+  color: var(--text-heading);
+  overflow-wrap: anywhere;
+}
+
+.collection-detail__artist {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.collection-detail__meta {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.collection-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.collection-detail__actions .material-icons {
+  font-size: 1.125rem;
+}
+
+.collection-detail__tracks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (max-width: 600px) {
+  .collection-detail__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .collection-detail__art {
+    width: 120px;
+    height: 120px;
+  }
+}

@@ -1,0 +1,89 @@
+<div class="sales">
+  <div class="page-header">
+    <h2>Sales Telemetry</h2>
+    <button class="btn btn--primary" (click)="generateReport()" [disabled]="isGenerating()">
+      {{ isGenerating() ? 'Generating...' : 'Generate Report' }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  }
+
+  <div class="period-selector">
+    <label for="timePeriod">Time Period:</label>
+    <select id="timePeriod" class="form-field__control" [value]="selectedPeriod()" (change)="onPeriodChange($any($event.target).value)">
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+      <option value="90d">Last 90 days</option>
+      <option value="1y">Last year</option>
+    </select>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">Loading sales data...</div>
+  } @else if (salesReports().length === 0) {
+    <div class="empty-state">
+      <p>No sales reports found. Click "Generate Report" to create your first report.</p>
+    </div>
+  } @else {
+    <div class="reports-list">
+      @for (report of salesReports(); track report.id) {
+        <div class="report-card">
+          <div class="report-header">
+            <div>
+              <h3>{{ report.period }} Report</h3>
+              <p class="report-date">Generated: {{ formatDate(report.generatedAt) }}</p>
+            </div>
+          </div>
+
+          <div class="report-stats">
+            <div class="stat-item">
+              <span class="stat-label">Total Revenue</span>
+              <span class="stat-value">{{ formatCurrency(report.totalRevenue) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Total Sales</span>
+              <span class="stat-value">{{ formatNumber(report.totalSales) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Avg. Order Value</span>
+              <span class="stat-value">{{ formatCurrency(report.averageOrderValue) }}</span>
+            </div>
+          </div>
+
+          @if (report.topSongs && report.topSongs.length > 0) {
+            <div class="report-section">
+              <h4>Top Songs</h4>
+              <div class="top-items">
+                @for (song of report.topSongs; track song.songId) {
+                  <div class="top-item">
+                    <span class="item-name">{{ song.title }}</span>
+                    <span class="item-value">{{ formatNumber(song.sales) }} sales</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (report.topArtists && report.topArtists.length > 0) {
+            <div class="report-section">
+              <h4>Top Artists</h4>
+              <div class="top-items">
+                @for (artist of report.topArtists; track artist.artistId) {
+                  <div class="top-item">
+                    <span class="item-name">{{ artist.name }}</span>
+                    <span class="item-value">{{ formatCurrency(artist.revenue) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

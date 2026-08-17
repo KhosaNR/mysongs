@@ -1,0 +1,330 @@
+<div class="song-management">
+  <div class="page-header">
+    <h2>My Songs & Singles</h2>
+    <div class="header-actions">
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          [checked]="showDeleted()"
+          (change)="showDeleted.set(!showDeleted())"
+        />
+        <span>Show Deleted</span>
+      </label>
+      <button class="btn btn--primary" (click)="openCreateForm()">+ Upload Song</button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="clearError()">×</button>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>{{ isEditMode() ? 'Edit Song' : 'Upload New Song' }}</h3>
+        <form [formRoot]="songForm" (submit)="saveSong()">
+          <div class="form-section">
+            <h4>Audio File</h4>
+            <div class="form-row">
+              <div class="form-field">
+                <input
+                  type="file"
+                  id="audioFile"
+                  accept="audio/*"
+                  (change)="onAudioSelected($event)"
+                />
+                <app-field-errors [field]="songForm.songFile" />
+                @if (!isEditMode()) {
+                  <p class="field-hint">Required for new songs. MP3 20MB or less.</p>
+                } @else {
+                  <p class="field-hint">Leave empty to keep the current audio file.</p>
+                }
+                @if (formData().songFile) {
+                  <p class="field-hint">
+                    @if (isReadingMetadata()) {
+                      <span>Reading audio metadata…</span>
+                    } @else if (formData().duration > 0) {
+                      <span>Detected duration: {{ formatDuration(formData().duration) }}</span>
+                    }
+                  </p>
+                }
+                @if (isUploadingAudio()) {
+                  <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
+                  </div>
+                  <p class="progress-text">Uploading audio... {{ uploadProgress() }}%</p>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Song Details</h4>
+            <div class="form-field">
+              <label for="title">Song Title *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="title"
+                [formField]="songForm.title"
+              />
+              <app-field-errors [field]="songForm.title" />
+            </div>
+
+            <div class="form-field">
+              <label for="featuredArtists">Featured Artists</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="featuredArtists"
+                [formField]="songForm.featuredArtists"
+                placeholder="Artist 2"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="producers">Producers</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="producers"
+                [formField]="songForm.producers"
+                placeholder="Producer"
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="songType">Song Type</label>
+                <select id="songType" class="form-field__control" [formField]="songForm.songType">
+                  <option value="album">Album Song</option>
+                  <option value="single">Single</option>
+                </select>
+              </div>
+              @if (formData().songType === 'album') {
+                <div class="form-field">
+                  <label for="albumId">Album *</label>
+                  <select
+                    class="form-field__control"
+                    id="albumId"
+                    [formField]="songForm.albumId"
+                    (change)="onAlbumChange($event)"
+                  >
+                    @for (album of albums(); track album.id) {
+                      <option [value]="album.id">{{ album.title }}</option>
+                    }
+                  </select>
+                  <app-field-errors [field]="songForm.albumId" />
+                  @if (albums().length === 0) {
+                    <p class="field-hint">No albums yet. Create one first.</p>
+                  }
+                </div>
+              }
+              @if (formData().songType === 'album') {
+                <div class="form-field">
+                  <label for="trackNumber">Track Number</label>
+                  <input
+                    class="form-field__control"
+                    type="number"
+                    id="trackNumber"
+                    [formField]="songForm.trackNumber"
+                  />
+                </div>
+              }
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="genre">Genre</label>
+                <input
+                  class="form-field__control"
+                  type="text"
+                  id="genre"
+                  [formField]="songForm.genre"
+                  placeholder="Hip-Hop/Rap"
+                />
+              </div>
+              <div class="form-field">
+                <label for="releaseDate">Release Date</label>
+                <input
+                  class="form-field__control"
+                  type="date"
+                  id="releaseDate"
+                  [formField]="songForm.releaseDate"
+                />
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="tags">Tags (comma-separated)</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="tags"
+                [formField]="songForm.tags"
+                placeholder="upbeat, motivational"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="youtubeVideoId">Music Video YouTube ID</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="youtubeVideoId"
+                [formField]="songForm.youtubeVideoId"
+                placeholder="dQw4w9WgXcQ"
+              />
+              <p class="field-hint">
+                Paste the video ID from the YouTube URL (e.g. youtube.com/watch?v=ID)
+              </p>
+            </div>
+          </div>
+          <div class="form-section">
+            <h4>Lyrics</h4>
+            <div class="form-field">
+              <!-- <label for="lyrics">Lyrics</label> -->
+              <textarea
+                class="form-field__control"
+                id="lyrics"
+                [formField]="songForm.lyrics"
+                rows="4"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Credits</h4>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="writtenBy">Written By</label>
+                <input
+                  class="form-field__control"
+                  type="text"
+                  id="writtenBy"
+                  [formField]="songForm.writtenBy"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Theme Colors</h4>
+            <div class="form-row three-col">
+              <div class="form-field">
+                <label for="primaryColor">Primary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="primaryColor"
+                  [formField]="songForm.primaryColor"
+                />
+              </div>
+              <div class="form-field">
+                <label for="secondaryColor">Secondary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="secondaryColor"
+                  [formField]="songForm.secondaryColor"
+                />
+              </div>
+              <div class="form-field">
+                <label for="tertiaryColor">Tertiary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="tertiaryColor"
+                  [formField]="songForm.tertiaryColor"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            @if (error()) {
+              <div class="error-banner">
+                <p>{{ error() }}</p>
+                <button type="button" (click)="clearError()">×</button>
+              </div>
+            }
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="closeForm()"
+              [disabled]="isSaving()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+              @if (isSaving()) {
+                <span class="spinner-ring"></span>
+                Saving...
+              } @else {
+                {{ isEditMode() ? 'Update Song' : 'Upload Song' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="songs-list">
+    @if (isLoading()) {
+      <div class="loading-state">Loading songs...</div>
+    } @else if (songs().length === 0) {
+      <div class="empty-state">
+        <p>
+          No songs found{{ showDeleted() ? '' : '. Toggle "Show Deleted" to see deleted songs' }}.
+        </p>
+        <p class="hint">Upload your first song or single using the button above.</p>
+      </div>
+    } @else {
+      <div class="data-table">
+        <div class="data-table__header">
+          <div class="col-title">Title</div>
+          <div class="col-album">Album</div>
+          <div class="col-duration">Duration</div>
+          <div class="col-video">Video</div>
+          <div class="data-table__actions">Actions</div>
+        </div>
+        @for (song of songs(); track song.id) {
+          <div class="data-table__row" [class.deleted]="song.isDeleted">
+            <div class="col-title">
+              @if (song.artworkUrl) {
+                <img [src]="song.artworkUrl" alt="" class="song-thumb" />
+              }
+              {{ getSongFullTitle(song) }}
+              @if (song.isDeleted) {
+                <span class="deleted-badge">Deleted</span>
+              }
+            </div>
+            <div class="col-album">{{ getAlbumTitle(song.albumId) }}</div>
+            <div class="col-duration">{{ formatDuration(song.duration) }}</div>
+            <div class="col-video">
+              @if (song.youtubeVideoId) {
+                <span class="material-icons video-icon">play_circle</span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </div>
+            <div class="data-table__actions">
+              <button class="btn btn--secondary btn--sm" (click)="openEditForm(song)">Edit</button>
+              @if (song.isDeleted) {
+                <button class="btn btn--secondary btn--sm" (click)="restoreSong(song)">
+                  Restore
+                </button>
+              } @else {
+                <button class="btn btn--danger btn--sm" (click)="deleteSong(song)">Delete</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

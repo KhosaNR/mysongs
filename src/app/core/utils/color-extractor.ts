@@ -11,9 +11,11 @@
  * const isAccessible = meetsWCAGAA('#ffffff', '#000000');
  * 
  * // Get accessible text color for a background
- * const textColor = getAccessibleTextColor('#ffb800');
+ * const textColor = getAccessibleTextColor('#C5FCFB');
  * ```
  */
+
+import { TEXT_ON_DARK, TEXT_ON_LIGHT } from '../constants/theme.constants';
 
 /**
  * Convert RGB values to hex color string
@@ -21,7 +23,7 @@
  * @param r - Red value (0-255)
  * @param g - Green value (0-255)
  * @param b - Blue value (0-255)
- * @returns Hex color string (e.g., '#ffb800')
+ * @returns Hex color string (e.g., '#C5FCFB')
  */
 export function rgbToHex(r: number, g: number, b: number): string {
   const toHex = (n: number) => {
@@ -35,7 +37,7 @@ export function rgbToHex(r: number, g: number, b: number): string {
 /**
  * Convert hex color to RGB
  * 
- * @param hex - Hex color string (e.g., '#ffb800')
+ * @param hex - Hex color string (e.g., '#C5FCFB')
  * @returns RGB object
  */
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -138,5 +140,5 @@ export function getAccessibleTextColor(backgroundColor: string): string {
   const luminance = getRelativeLuminance(backgroundColor);
   
   // Use white text on dark backgrounds, black text on light backgrounds
-  return luminance > 0.179 ? '#000000' : '#ffffff';
+  return luminance > 0.179 ? TEXT_ON_LIGHT : TEXT_ON_DARK;
 }

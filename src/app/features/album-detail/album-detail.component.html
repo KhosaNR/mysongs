@@ -1,0 +1,146 @@
+<main class="album-detail-page">
+  @if (isLoading()) {
+    <div class="album-detail-page__loading">
+      <app-loading-spinner size="lg" aria-label="Loading album" />
+    </div>
+  } @else if (error(); as message) {
+    <div class="error-container">
+      <app-error-banner [message]="message" type="error" />
+    </div>
+  } @else if (album(); as album) {
+    <div class="album-detail">
+      <div class="album-detail__main">
+        <section class="album-detail__header">
+          @if (album.artworkUrl) {
+            <img [src]="album.artworkUrl" [alt]="album.title + ' album artwork'" class="album-detail__art" loading="lazy" />
+          } @else {
+            <div class="album-detail__art album-detail__art--placeholder">
+              <span class="material-icons" aria-hidden="true">album</span>
+            </div>
+          }
+
+          <div class="album-detail__info">
+            <p class="album-detail__type">Album</p>
+            <h1 class="album-detail__title">{{ album.title }}</h1>
+
+            @if (artist(); as artist) {
+              <a class="album-detail__artist" [routerLink]="['/artist', artist.artistId]">{{ artist.name }}</a>
+            }
+
+            <p class="album-detail__meta">
+              {{ tracks().length }} track{{ tracks().length === 1 ? '' : 's' }}
+              @if (totalDuration() !== '0:00') { · {{ totalDuration() }} }
+              @if (album.releaseDate) { · {{ album.releaseDate | date: 'yyyy' }} }
+              @if (album.genre) { · {{ album.genre }} }
+            </p>
+
+            <div class="album-detail__actions">
+              <button type="button" class="btn btn--primary" (click)="playAlbum()" [disabled]="tracks().length === 0">
+                <span class="material-icons" aria-hidden="true">play_arrow</span>
+                Play Album
+              </button>
+              <button type="button" class="btn btn--secondary" (click)="openPlaylistDialog()" [disabled]="tracks().length === 0">
+                <span class="material-icons" aria-hidden="true">playlist_add</span>
+                Add to Playlist
+              </button>
+              @if (canBuyAlbum()) {
+                <button type="button" class="btn btn--secondary" (click)="onBuyAlbumClick()">
+                  <span class="material-icons" aria-hidden="true">shopping_cart</span>
+                  Buy Album · R{{ album.priceZAR!.toFixed(2) }}
+                </button>
+              } @else if (isAlbumPurchased()) {
+                <button
+                  type="button"
+                  class="btn btn--primary"
+                  (click)="downloadAlbum()"
+                  [disabled]="isDownloadingAlbum() || tracks().length === 0"
+                >
+                  <span class="material-icons" aria-hidden="true">download</span>
+                  {{ isDownloadingAlbum() ? 'Downloading...' : 'Download Album' }}
+                </button>
+              }
+              @if (canEdit()) {
+                <button type="button" class="btn btn--secondary" (click)="openEditAlbum()">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                  Edit Album
+                </button>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="album-detail__tracks" aria-label="Album tracks">
+          @if (tracks().length > 0) {
+            <div class="album-detail__search">
+              <app-search-input
+                placeholder="Search tracks..."
+                ariaLabel="Search album tracks"
+                [(value)]="searchQuery"
+                (clear)="clearSearch()"
+              />
+            </div>
+          }
+          @if (filteredTracks().length === 0) {
+            <app-empty-state icon="music" title="No tracks found" description="Try a different search or check back soon" />
+          } @else {
+            @for (track of filteredTracks(); track track.songId; let i = $index) {
+              <app-track-row
+                [song]="track"
+                [artworkUrl]="track.artworkUrl || album.artworkUrl || null"
+                [artistName]="artist()?.name || ''"
+                [albumTitle]="album.title"
+                [trackNumber]="track.trackNumber || i + 1"
+                [canEdit]="canEdit()"
+                [purchased]="isAlbumPurchased()"
+                (playRequested)="playAlbum(i)"
+                (addToPlaylist)="openPlaylistDialog()"
+                (editRequested)="openEditSong($event)"
+              />
+            }
+          }
+        </section>
+      </div>
+
+      <aside class="album-detail__rail" aria-label="More from {{ artist()?.name || 'this artist' }}">
+        <h2 class="album-detail__rail-title">
+          More from {{ artist()?.name || 'this artist' }}
+        </h2>
+        @if (otherAlbums().length === 0) {
+          <p class="album-detail__rail-empty">No other albums yet.</p>
+        } @else {
+          <div class="album-detail__rail-list">
+            @for (other of otherAlbums(); track other.id) {
+              <a class="album-detail__rail-item" [routerLink]="['/album', other.id]">
+                @if (other.artworkUrl) {
+                  <img [src]="other.artworkUrl" [alt]="other.title + ' album artwork'" class="album-detail__rail-art" loading="lazy" />
+                } @else {
+                  <div class="album-detail__rail-art album-detail__rail-art--placeholder">
+                    <span class="material-icons" aria-hidden="true">album</span>
+                  </div>
+                }
+                <span class="album-detail__rail-name">{{ other.title }}</span>
+                @if (other.releaseDate) {
+                  <span class="album-detail__rail-year">{{ other.releaseDate | date: 'yyyy' }}</span>
+                }
+              </a>
+            }
+          </div>
+        }
+      </aside>
+    </div>
+  }
+
+  <app-purchase-dialog
+    [state]="dialogState()"
+    [album]="albumPurchaseItem()"
+    [errorMessage]="dialogError()"
+    (dismiss)="closeDialog()"
+    (purchase)="confirmAlbumPurchase($event)"
+  />
+
+  <app-add-to-playlist-dialog
+    [isOpen]="isPlaylistDialogOpen()"
+    [songIds]="tracks().map(track => track.songId)"
+    (closed)="closePlaylistDialog()"
+  />
+</main>

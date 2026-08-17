@@ -1,0 +1,5 @@
+// Thin route wrapper — artist navigation lives in the system-wide sidebar,
+// so this layout only fills the routed content area.
+.panel-content {
+  min-height: 100vh;
+}

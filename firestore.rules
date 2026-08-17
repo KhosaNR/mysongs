@@ -2,95 +2,252 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions for authentication and authorization
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
+    // Resolves the public application user ID. Prefers the `userId` custom
+    // claim (written by the identity scripts) to avoid a cross-document get;
+    // falls back to the private auth→user mapping (owner-readable, recursion
+    // free), then to the Firebase Auth UID for legacy `users/{uid}` docs.
+    function getUserPublicId() {
+      let lookup = get(/databases/$(database)/documents/user_auth_lookup/$(request.auth.uid)).data;
+      return request.auth.token.userId != null
+        ? request.auth.token.userId
+        : (lookup != null && lookup.userId != null ? lookup.userId : request.auth.uid);
+    }
+
+    // Admin is determined by the `role` custom claim ONLY. A Firestore-doc
+    // fallback would read `users/{...}`, whose read rule calls isAdmin() again
+    // — recursive rule evaluation that denies every request once
+    // `user_auth_lookup` documents exist.
     function isAdmin() {
       return isAuthenticated() && request.auth.token.role == 'admin';
     }
-    
+
+    // Role & artistId are sourced from the Firestore user document, not
+    // custom claims. Custom claims are still used for the elevated admin
+    // role (set via CLI) because Firestore cannot verify a doc update path
+    // for that privilege level.
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(getUserPublicId())).data;
+    }
+
     function isArtist() {
-      return isAuthenticated() && request.auth.token.role == 'artist';
+      return isAuthenticated() && getUserDoc().role == 'artist';
     }
-    
+
     function isListener() {
-      return isAuthenticated() && request.auth.token.role == 'listener';
+      return isAuthenticated() && getUserDoc().role == 'listener';
     }
-    
+
+    function isApprovedArtist() {
+      return isArtist() && getUserDoc().artistStatus == 'approved';
+    }
+
+    // Sessions with a granted role (listener, artist, or admin) may access
+    // listener-only features. Authenticated sessions without a granted role
+    // are VISITORs and are denied here. Pending artists keep their current
+    // access because isArtist() matches the `artist` role regardless of status.
+    function hasGrantedRole() {
+      return isAuthenticated() && (isListener() || isArtist() || isAdmin());
+    }
+
     function isSelf(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isAuthenticated() && getUserPublicId() == userId;
     }
-    
+
+    function artistIdForUser() {
+      // The user document's artistId is the source of truth. Fall back to the
+      // public user ID (itself the UID pre-migration) for accounts whose
+      // document predates the field.
+      return getUserDoc().artistId != null ? getUserDoc().artistId : getUserPublicId();
+    }
+
     function isArtistForDoc(artistId) {
-      return isAuthenticated() && request.auth.token.artistId == artistId;
+      return isAuthenticated() && artistIdForUser() == artistId;
     }
-    
+
     function isArtistForSong(songId) {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/songs/$(songId)).data.artistId == request.auth.token.artistId;
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/songs/$(songId)).data.artistId == artistIdForUser();
+    }
+
+    function isNotDeleted() {
+      return resource.data.isDeleted != true;
+    }
+
+    function canReadDeleted() {
+      return isAdmin() || isArtist();
+    }
+
+    // Private auth→user mapping. The Firebase Auth UID is stored here — and
+    // only here — so rules and the app can resolve the public user ID from an
+    // authenticated request without ever exposing the UID as a primary key.
+    match /user_auth_lookup/{authUid} {
+      allow read: if isAuthenticated() && (authUid == request.auth.uid || request.auth.token.role == 'admin');
+      allow create: if isAuthenticated() &&
+        authUid == request.auth.uid &&
+        get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.authUid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAuthenticated() && (authUid == request.auth.uid || request.auth.token.role == 'admin');
     }
 
     // Users collection
-    // Users can read their own document, admins can read all
-    // Users can update their own document (limited fields)
-    // Admins can update all users
+    // Read is self/admin only. Create at registration binds the opaque userId
+    // to the caller's UID. Self-updates may only touch non-privileged fields;
+    // artistId may be linked only to an artist document owned by the caller.
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isAdmin() || isSelf(userId) || isArtist());
-      allow create: if isAuthenticated() && isSelf(userId);
-      allow update: if isAuthenticated() && (isAdmin() || isSelf(userId));
-      allow delete: if isAdmin();
+      allow read: if isAuthenticated() &&
+        (isAdmin() ||
+         isSelf(userId) ||
+         (resource.data.authUid != null && resource.data.authUid == request.auth.uid));
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == userId &&
+        request.resource.data.authUid == request.auth.uid &&
+        !exists(/databases/$(database)/documents/user_auth_lookup/$(request.auth.uid));
+      allow update: if isAdmin() ||
+        (isSelf(userId) &&
+          !request.resource.data.diff().affectedKeys().hasAny(['role', 'artistStatus', 'rejectionReason', 'authUid']) &&
+          (!request.resource.data.diff().affectedKeys().hasAny(['artistId']) ||
+            (request.resource.data.artistId != null &&
+              get(/databases/$(database)/documents/artists/$(request.resource.data.artistId)).data.userId == getUserPublicId())));
+      allow delete: if isAdmin() || isSelf(userId);
     }
 
     // Artists collection
-    // Public read access for marketing content
-    // Admin-only write access
-    // Artists can update their own profile
+    // Public read. Self-registration writes the opaque artistId and the
+    // owner's public userId. Updates require an approved artist who owns the
+    // document (via the user-doc artistId or the artist doc's userId).
     match /artists/{artistId} {
-      allow read: if true;
-      allow write: if isAdmin() || isArtistForDoc(artistId);
+      allow read: if isNotDeleted() || canReadDeleted();
+      allow create: if isAdmin() ||
+        (isAuthenticated() &&
+          request.resource.data.artistId == artistId &&
+          request.resource.data.userId == getUserPublicId());
+      allow update: if isAdmin() || (isApprovedArtist() && (isArtistForDoc(artistId) || resource.data.userId == getUserPublicId()));
+      allow delete: if isAdmin();
     }
 
     // Songs collection
-    // Public read access for streaming and search
-    // Admin-only write access
-    // Artists can update their own songs
     match /songs/{songId} {
-      allow read: if true;
-      allow write: if isAdmin() || isArtistForSong(songId);
+      allow read: if isNotDeleted() || canReadDeleted();
+      allow create: if isAdmin() || (isApprovedArtist() && request.resource.data.artistId == artistIdForUser());
+      allow update: if isAdmin() || (isApprovedArtist() && isArtistForSong(songId));
+      allow delete: if isAdmin();
+    }
+
+    // Albums collection
+    match /albums/{albumId} {
+      allow read: if isNotDeleted() || canReadDeleted();
+      allow create: if isAdmin() || (isApprovedArtist() && request.resource.data.artistId == artistIdForUser());
+      allow update: if isAdmin() || (isApprovedArtist() && request.resource.data.artistId == artistIdForUser());
+      allow delete: if isAdmin();
     }
 
     // Purchases ledger (read-only for users, write-only for system)
-    // Users can read their own purchases
-    // Admins can read all purchases
-    // No direct writes from client - only via Cloud Functions/Workers
+    // Artists/admins may list all rows for the dashboard aggregate view;
+    // listeners may read only their own purchases. Visitors (no granted
+    // role) are excluded from the self-read branch.
     match /purchases_ledger/{purchaseId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if false; // Only backend can write
-      allow update: if false; // Immutable
+      allow read: if isAuthenticated() &&
+        (isAdmin() || isArtist() || (isListener() && resource.data.userId == getUserPublicId()));
+      allow create: if false;
+      allow update: if false;
       allow delete: if isAdmin();
     }
 
     // Playlists collection
-    // Users can read their own playlists
-    // Users can create/update/delete their own playlists
+    // Requires a granted role (listener/artist/admin). Private by default —
+    // the owner can always read/write; public playlists (`isPublic: true`) are
+    // readable by everyone (guests included) so they can be shared and copied.
     match /playlists/{playlistId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if (hasGrantedRole() && resource.data.userId == getUserPublicId()) ||
+        (isNotDeleted() && resource.data.isPublic == true);
+      allow create: if hasGrantedRole() && request.resource.data.userId == getUserPublicId();
+      allow update: if hasGrantedRole() && resource.data.userId == getUserPublicId();
+      allow delete: if hasGrantedRole() && resource.data.userId == getUserPublicId();
+    }
+
+    // Collections collection
+    // Artist-curated public song sets. Public read (guests included); the
+    // owning artist (or an admin) may create/update/soft-delete. Collections
+    // are soft-deletable so public reads stay filtered to live documents.
+    match /collections/{collectionId} {
+      allow read: if isNotDeleted();
+      allow create: if isAdmin() ||
+        (isApprovedArtist() && request.resource.data.artistId == artistIdForUser());
+      allow update: if isAdmin() ||
+        (isApprovedArtist() &&
+          resource.data.artistId == artistIdForUser() &&
+          request.resource.data.artistId == artistIdForUser());
+      allow delete: if isAdmin() ||
+        (isApprovedArtist() && resource.data.artistId == artistIdForUser());
     }
 
     // Annotations collection
-    // Public read access
-    // Artists can create/update annotations for their songs
-    // Admins can delete any annotation
     match /annotations/{annotationId} {
       allow read: if true;
-      allow create: if isAuthenticated() && isArtist();
-      allow update: if isAuthenticated() && (isAdmin() || isArtistForSong(resource.data.songId));
-      allow delete: if isAdmin() || isArtistForSong(resource.data.songId);
+      allow create: if isAuthenticated() && isApprovedArtist();
+      allow update: if isAdmin() || (isApprovedArtist() && isArtistForSong(resource.data.songId));
+      allow delete: if isAdmin() || (isApprovedArtist() && isArtistForSong(resource.data.songId));
+    }
+
+    // Lyric annotations collection
+    match /lyric_annotations/{annotationId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isApprovedArtist() &&
+        get(/databases/$(database)/documents/songs/$(request.resource.data.songId)).data.artistId == artistIdForUser();
+      allow update: if isAdmin() || (isApprovedArtist() &&
+        get(/databases/$(database)/documents/songs/$(resource.data.songId)).data.artistId == artistIdForUser());
+      allow delete: if isAdmin() || (isApprovedArtist() &&
+        get(/databases/$(database)/documents/songs/$(resource.data.songId)).data.artistId == artistIdForUser());
+    }
+
+    // Sponsors collection
+    match /sponsors/{sponsorId} {
+      allow read: if true;
+      allow create: if isAdmin() || (isApprovedArtist() && request.resource.data.artistId == artistIdForUser());
+      allow update: if isAdmin() || (isApprovedArtist() && resource.data.artistId == artistIdForUser());
+      allow delete: if isAdmin();
+    }
+
+    // Reports collection (abuse/moderation)
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.reporterId == getUserPublicId();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Visitor analytics (dashboard metrics)
+    // Readable by admins and artists (both dashboards surface these stats);
+    // writes are admin-only since this is platform summary data.
+    match /visitor_analytics/{entryId} {
+      allow read: if isAdmin() || isArtist();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Streaming analytics (dashboard metrics)
+    // Readable by admins and artists (both dashboards surface these stats);
+    // writes are admin-only since this is platform summary data.
+    match /streaming_analytics/{entryId} {
+      allow read: if isAdmin() || isArtist();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Platform site configuration (admin-customizable brand colors)
+    // Public read so guests and SSR first paint can access the palette;
+    // writes are admin-only.
+    match /platform_settings/{id} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
     }
   }
 }

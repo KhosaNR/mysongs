@@ -1,0 +1,303 @@
+<div class="track-management">
+  <div class="page-header">
+    <h2>Track Management</h2>
+    <div class="header-actions">
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          [checked]="showDeleted()"
+          (change)="showDeleted.set(!showDeleted())"
+        />
+        <span>Show Deleted</span>
+      </label>
+      <button class="btn btn--primary" (click)="openUploadForm()">+ Upload Track</button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  }
+
+  @if (showUploadForm()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>{{ isEditMode() ? 'Edit Track' : 'Upload New Track' }}</h3>
+
+        <form [formRoot]="trackForm" (submit)="submitUpload()">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="title">Title *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="title"
+                [formField]="trackForm.title"
+              />
+              <app-field-errors [field]="trackForm.title" />
+            </div>
+
+            <div class="form-field">
+              <label for="artistId">Artist ID *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="artistId"
+                [formField]="trackForm.artistId"
+              />
+              <app-field-errors [field]="trackForm.artistId" />
+              @if (isArtist()) {
+                <p class="field-hint">Auto-filled from your artist profile</p>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="albumId">Album ID</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="albumId"
+                [formField]="trackForm.albumId"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="trackNumber">Track Number</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="trackNumber"
+                [formField]="trackForm.trackNumber"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="priceZAR">Price (ZAR) *</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="priceZAR"
+                [formField]="trackForm.priceZAR"
+                step="0.01"
+              />
+              <app-field-errors [field]="trackForm.priceZAR" />
+            </div>
+
+            <div class="form-field">
+              <label for="minimumPriceZAR">Minimum Price (ZAR)</label>
+              <input
+                class="form-field__control"
+                type="number"
+                id="minimumPriceZAR"
+                [formField]="trackForm.minimumPriceZAR"
+                step="0.01"
+              />
+              <app-field-errors [field]="trackForm.minimumPriceZAR" />
+              <p class="field-hint">Lowest amount a buyer may pay. Leave 0 to use the standard price as the minimum.</p>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="genre">Genres (comma-separated) *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="genre"
+                [formField]="trackForm.genre"
+                placeholder="hip-hop, rap, inspirational"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="tags">Tags (comma-separated)</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="tags"
+                [formField]="trackForm.tags"
+                placeholder="upbeat, motivational, Xitsonga"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="lyrics">Lyrics</label>
+            <textarea
+              class="form-field__control"
+              id="lyrics"
+              [formField]="trackForm.lyrics"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="youtubeVideoId">YouTube Video ID</label>
+            <input
+              class="form-field__control"
+              type="text"
+              id="youtubeVideoId"
+              [formField]="trackForm.youtubeVideoId"
+              placeholder="dQw4w9WgXcQ"
+            />
+          </div>
+
+          <div class="form-section">
+            <h4>Theme Colors</h4>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="primaryColor">Primary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="primaryColor"
+                  [formField]="trackForm.primaryColor"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="secondaryColor">Secondary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="secondaryColor"
+                  [formField]="trackForm.secondaryColor"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="tertiaryColor">Tertiary</label>
+                <input
+                  class="form-field__control"
+                  type="color"
+                  id="tertiaryColor"
+                  [formField]="trackForm.tertiaryColor"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Files</h4>
+            <div class="form-field">
+              <label for="audioFile">Audio File *</label>
+              <input
+                type="file"
+                id="audioFile"
+                (change)="onFileSelected($event, 'audio')"
+                accept="audio/*"
+              />
+              @if (uploadFormData().audioFile !== null) {
+                <p class="file-name">{{ uploadFormData().audioFile?.name }}</p>
+                @if (isReadingMetadata()) {
+                  <p class="field-hint">Reading audio metadata…</p>
+                } @else if (uploadFormData().duration > 0) {
+                  <p class="field-hint">
+                    Detected duration: {{ formatDuration(uploadFormData().duration) }}
+                  </p>
+                }
+              }
+            </div>
+
+            <div class="form-field">
+              <label for="artworkFile">Artwork Image</label>
+              <input
+                type="file"
+                id="artworkFile"
+                (change)="onFileSelected($event, 'artwork')"
+                accept="image/*"
+              />
+              @if (uploadFormData().artworkFile !== null) {
+                <p class="file-name">{{ uploadFormData().artworkFile?.name }}</p>
+              }
+              @if (artworkPreview()) {
+                <div class="artwork-preview">
+                  <img [src]="artworkPreview()" alt="Artwork preview" />
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (isUploading()) {
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
+            </div>
+            <p class="progress-text">Uploading... {{ uploadProgress() }}%</p>
+          }
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="closeUploadForm()"
+              [disabled]="isUploading()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn--primary" [disabled]="isUploading()">
+              {{ isUploading() ? 'Uploading...' : isEditMode() ? 'Update Track' : 'Upload Track' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="tracks-list">
+    @if (isLoading()) {
+      <div class="loading-state">Loading...</div>
+    } @else if (tracks().length === 0) {
+      <div class="empty-state">
+        <p>
+          No tracks found{{ showDeleted() ? '' : '. Toggle "Show Deleted" to see deleted tracks' }}.
+        </p>
+        @if (isArtist()) {
+          <p class="hint">Upload your first track using the button above to get started.</p>
+        }
+      </div>
+    } @else {
+      <div class="data-table">
+        <div class="data-table__header">
+          <div class="col-title">Title</div>
+          @if (!isArtist()) {
+            <div class="col-artist">Artist ID</div>
+          }
+          <div class="col-duration">Duration</div>
+          <div class="col-genre">Genre</div>
+          <div class="data-table__actions">Actions</div>
+        </div>
+        @for (track of tracks(); track track.id) {
+          <div class="data-table__row">
+            <div class="col-title">
+              @if (track.artworkUrl) {
+                <img [src]="track.artworkUrl" alt="" class="track-thumb" />
+              }
+              {{ track.title }}
+            </div>
+            @if (!isArtist()) {
+              <div class="col-artist">{{ track.artistId }}</div>
+            }
+            <div class="col-duration">{{ formatDuration(track.duration) }}</div>
+            <div class="col-genre">{{ track.genre?.join(', ') || 'N/A' }}</div>
+            <div class="data-table__actions">
+              <button class="btn btn--secondary btn--sm" (click)="editTrack(track)">Edit</button>
+              @if (track.isDeleted) {
+                <button class="btn btn--secondary btn--sm" (click)="restoreTrack(track)">
+                  Restore
+                </button>
+              } @else {
+                <button class="btn btn--danger btn--sm" (click)="deleteTrack(track)">Delete</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

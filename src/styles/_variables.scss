@@ -17,25 +17,48 @@
 
   // Text Colors
   --text-primary: #ffffff;
+  --text-heading: #d4d4d4; // Grey-toned heading text (leaning white, never pure white)
   --text-secondary: #b3b3b3;
   --text-tertiary: #808080;
   --text-inverse: #000000;
 
-  // Accent Colors (Leo Bee Brand - South African inspired)
-  --accent-primary: #ffb800; // Golden yellow (SA flag)
-  --accent-secondary: #00a86b; // Green (SA flag)
-  --accent-tertiary: #e63946; // Red accent (SA flag)
+  // Accent Colors (Platform Brand) — single source of truth shared with
+  // ThemeService.DEFAULT_COLORS and artist/album/song themeColors.
+  --accent-primary: #C5FCFB; // Rose (primary actions, links, focus)
+  --accent-secondary: #2EF8FF; // Cyan/Mint (secondary highlights, progress)
+  --accent-tertiary: #e63946; // Brand red (tertiary, CTA + danger semantic)
+
+  // Text rendered on top of accent-colored surfaces. Set explicitly by the
+  // platform palette's foreground colors at runtime (ThemeService), matching
+  // the WCAG-derived defaults below.
+  --text-on-accent: #000000;
+  --text-on-secondary: #000000;
+  --text-on-tertiary: #000000;
+  --text-on-danger: #000000;
+
+  // Container (tinted surface) colors per brand hue — the softer surfaces used
+  // for grouped/surrounding UI. The on-container text follows WCAG luminance.
+  --bg-container-primary: #1E2626;
+  --bg-container-secondary: #072526;
+  --bg-container-tertiary: #23090B;
+  --text-on-container-primary: #ffffff;
+  --text-on-container-secondary: #ffffff;
+  --text-on-container-tertiary: #ffffff;
 
   // Semantic Colors
-  --color-success: #00a86b;
-  --color-warning: #ffb800;
-  --color-error: #e63946;
+  --color-success: #2EF8FF;
+  --color-warning: #D4FF99;
+  --color-error: #e63946; // Brand red (danger/CTA, matches ThemeService accent)
   --color-info: #4a9eff;
+
+  // Text rendered on success/warning surfaces (both light hues → dark text).
+  --text-on-success: #000000;
+  --text-on-warning: #000000;
 
   // Border Colors
   --border-primary: #2a2a2a;
   --border-secondary: #333333;
-  --border-focus: #ffb800;
+  --border-focus: var(--accent-primary);
 
   // Interactive States
   --color-hover: rgba(255, 255, 255, 0.1);
@@ -48,7 +71,7 @@
 
   // Font Families
   --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-family-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-family-display: 'Hanken Grotesk', 'Inter', sans-serif;
   --font-family-mono: 'Fira Code', 'Courier New', monospace;
 
   // Font Sizes (using modular scale 1.25)
@@ -111,7 +134,7 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(255, 184, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(46, 248, 255, 0.3);
 
   // ============================================================================
   // 6. TRANSITIONS & ANIMATIONS
@@ -162,6 +185,9 @@
   --header-height: 4rem;
   --player-height: 5rem;
 
+  // Standard control (button/input) height
+  --control-height: 2.75rem;
+
   // ============================================================================
   // 10. ACCESSIBILITY
   // ============================================================================
@@ -188,14 +214,19 @@
 
   // Text Colors
   --text-primary: #000000;
+  --text-heading: #3a3a3a; // Grey-toned heading text (softened black-grey, never pure black)
   --text-secondary: #4a4a4a;
   --text-tertiary: #737373;
   --text-inverse: #ffffff;
 
+  // Text on semantic surfaces (unchanged — success/warning stay light hues).
+  --text-on-success: #000000;
+  --text-on-warning: #000000;
+
   // Border Colors
   --border-primary: #d4d4d4;
   --border-secondary: #e5e5e5;
-  --border-focus: #ffb800;
+  --border-focus: var(--accent-primary);
 
   // Interactive States
   --color-hover: rgba(0, 0, 0, 0.05);
@@ -207,7 +238,7 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 20px rgba(255, 184, 0, 0.2);
+  --shadow-glow: 0 0 20px rgba(46, 248, 255, 0.2);
 }
 
 // ============================================================================
@@ -216,6 +247,7 @@
 
 [data-theme='high-contrast'] {
   --text-primary: #ffffff;
+  --text-heading: #ffffff;
   --text-secondary: #ffffff;
   --bg-primary: #000000;
   --border-primary: #ffffff;

@@ -1,5 +1,5 @@
-import { inject } from '@angular/core';
-import { PiiMaskPipe } from '../../shared/pipes/pii-mask.pipe';
+import { inject, Injectable } from '@angular/core';
+import { PiiMaskService } from '../services/pii-mask.service';
 
 /**
  * Centralized error handling utility for consistent error processing across all services.
@@ -25,8 +25,11 @@ import { PiiMaskPipe } from '../../shared/pipes/pii-mask.pipe';
  * // Use result.data
  * ```
  */
+@Injectable({
+  providedIn: 'root',
+})
 export class ErrorHandler {
-  private readonly piiMaskPipe = inject(PiiMaskPipe);
+  private readonly piiMaskService = inject(PiiMaskService);
 
   /**
    * Executes an async operation with centralized error handling.
@@ -168,7 +171,7 @@ export class ErrorHandler {
     
     for (const [key, value] of Object.entries(context)) {
       if (typeof value === 'string') {
-        sanitized[key] = this.piiMaskPipe.transform(value);
+        sanitized[key] = this.piiMaskService.mask(value);
       } else if (typeof value === 'object' && value !== null) {
         // Recursively sanitize nested objects (one level deep)
         sanitized[key] = this.sanitizeNestedObject(value as Record<string, unknown>);
@@ -189,10 +192,10 @@ export class ErrorHandler {
    */
   private sanitizeNestedObject(obj: Record<string, unknown>): Record<string, unknown> {
     const sanitized: Record<string, unknown> = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string') {
-        sanitized[key] = this.piiMaskPipe.transform(value);
+        sanitized[key] = this.piiMaskService.mask(value);
       } else {
         sanitized[key] = value;
       }

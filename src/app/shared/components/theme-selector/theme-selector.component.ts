@@ -18,6 +18,8 @@
 
 import { Component, inject, signal, computed } from '@angular/core';
 import { ThemeService } from '../../../core/services/theme.service';
+import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
+import { ThemeColors } from '../../models/artist.interface';
 
 /**
  * Theme source options matching the Firestore inheritance chain
@@ -36,7 +38,7 @@ export type ThemeSource = 'artist' | 'album' | 'song' | 'manual';
  * - Reactive updates via Signals
  */
 @Component({
-  selector: 'lb-theme-selector',
+  selector: 'app-theme-selector',
   standalone: true,
   template: `
     <div class="theme-selector">
@@ -44,29 +46,24 @@ export type ThemeSource = 'artist' | 'album' | 'song' | 'manual';
 
       @if (currentColors()) {
         <div class="theme-selector__swatches">
-          <div class="theme-selector__swatch-group">
-            <span class="theme-selector__swatch-label">Primary</span>
-            <span
-              class="theme-selector__swatch"
-              [style.background-color]="currentColors().primary"
-              [title]="currentColors().primary"
-            ></span>
-          </div>
-          <div class="theme-selector__swatch-group">
-            <span class="theme-selector__swatch-label">Secondary</span>
-            <span
-              class="theme-selector__swatch"
-              [style.background-color]="currentColors().secondary"
-              [title]="currentColors().secondary"
-            ></span>
-          </div>
-          <div class="theme-selector__swatch-group">
-            <span class="theme-selector__swatch-label">Accent</span>
-            <span
-              class="theme-selector__swatch"
-              [style.background-color]="currentColors().accent"
-              [title]="currentColors().accent"
-            ></span>
+          <div class="theme-selector__swatch-grid">
+            <span class="theme-selector__swatch-header theme-selector__swatch-header--corner" aria-hidden="true"></span>
+            <span class="theme-selector__swatch-header">Primary</span>
+            <span class="theme-selector__swatch-header">Secondary</span>
+            <span class="theme-selector__swatch-header">Tertiary</span>
+
+            @for (row of swatchRows; track row.label) {
+              <span class="theme-selector__swatch-header theme-selector__swatch-header--label">{{ row.label }}</span>
+              @for (cell of row.cells; track cell) {
+                <span
+                  class="theme-selector__swatch"
+                  [class.theme-selector__swatch--glyph]="row.label === 'Foreground'"
+                  [style.background-color]="swatchBackground(cell)"
+                  [style.color]="swatchValue(cell)"
+                  [title]="swatchValue(cell)"
+                >{{ row.label === 'Foreground' ? 'Aa' : '' }}</span>
+              }
+            }
           </div>
         </div>
       }
@@ -147,7 +144,7 @@ export type ThemeSource = 'artist' | 'album' | 'song' | 'manual';
               <span>Primary</span>
               <input
                 type="color"
-                [value]="customColors().primary || '#ffb800'"
+                [value]="customColors().primary || defaultColors.primary"
                 (change)="updateCustomColor('primary', $event)"
               />
             </label>
@@ -156,17 +153,17 @@ export type ThemeSource = 'artist' | 'album' | 'song' | 'manual';
               <span>Secondary</span>
               <input
                 type="color"
-                [value]="customColors().secondary || '#00a86b'"
+                [value]="customColors().secondary || defaultColors.secondary"
                 (change)="updateCustomColor('secondary', $event)"
               />
             </label>
 
             <label class="theme-selector__color-label">
-              <span>Accent</span>
+              <span>Tertiary</span>
               <input
                 type="color"
-                [value]="customColors().accent || '#e63946'"
-                (change)="updateCustomColor('accent', $event)"
+                [value]="customColors().tertiary || defaultColors.tertiary"
+                (change)="updateCustomColor('tertiary', $event)"
               />
             </label>
           </div>
@@ -208,33 +205,50 @@ export type ThemeSource = 'artist' | 'album' | 'song' | 'manual';
 
     .theme-selector__swatches {
       display: flex;
-      gap: var(--space-3);
+      flex-direction: column;
+      gap: var(--space-2);
       padding: var(--space-3);
       background: var(--bg-secondary);
       border-radius: var(--radius-md);
     }
 
-    .theme-selector__swatch-group {
-      display: flex;
-      flex-direction: column;
+    .theme-selector__swatch-grid {
+      display: grid;
+      grid-template-columns: 5.5rem repeat(3, 1fr);
+      gap: var(--space-2) var(--space-3);
       align-items: center;
-      gap: var(--space-1);
-      flex: 1;
     }
 
-    .theme-selector__swatch-label {
+    .theme-selector__swatch-header {
       font-size: var(--text-xs);
+      font-weight: var(--weight-semibold);
+      color: var(--text-primary);
+    }
+
+    .theme-selector__swatch-header--corner {
+      visibility: hidden;
+    }
+
+    .theme-selector__swatch-header--label {
       color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: var(--weight-medium);
     }
 
     .theme-selector__swatch {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 32px;
       height: 32px;
       border-radius: var(--radius-sm);
       border: 2px solid var(--border-primary);
       cursor: help;
+    }
+
+    .theme-selector__swatch--glyph {
+      font-family: var(--font-family-display);
+      font-size: var(--text-xs);
+      font-weight: var(--weight-bold);
     }
 
     .theme-selector__options {
@@ -376,6 +390,21 @@ export class ThemeSelectorComponent {
   readonly selectedSource = signal<ThemeSource>('artist');
 
   /**
+   * Static platform defaults used as the manual-picker fallback values.
+   */
+  readonly defaultColors = DEFAULT_PLATFORM_COLORS;
+
+  /**
+   * Swatch matrix grouped by row (Color / Foreground / Container) across the
+   * three brand hues (Primary | Secondary | Tertiary).
+   */
+  readonly swatchRows: readonly { label: string; cells: readonly (keyof ThemeColors)[] }[] = [
+    { label: 'Color', cells: ['primary', 'secondary', 'tertiary'] },
+    { label: 'Foreground', cells: ['foregroundPrimary', 'foregroundSecondary', 'foregroundTertiary'] },
+    { label: 'Container', cells: ['containerPrimary', 'containerSecondary', 'containerTertiary'] },
+  ];
+
+  /**
    * Current active colors from ThemeService (reactive via Signals)
    */
   readonly currentColors = this.themeService.currentColors;
@@ -437,12 +466,43 @@ export class ThemeSelectorComponent {
   }
 
   /**
+   * Background color for a swatch cell.
+   * 
+   * Foreground swatches render the 'Aa' glyph on top of their base hue so the
+   * chosen text color stays legible; every other cell uses its own color.
+   *
+   * @param key - Palette key of the swatch cell
+   * @returns The swatch background color
+   */
+  swatchBackground(key: keyof ThemeColors): string {
+    const colors = { ...DEFAULT_PLATFORM_COLORS, ...this.currentColors() } as Required<ThemeColors>;
+
+    if (key.startsWith('foreground')) {
+      const hue = key.replace('foreground', '') as 'primary' | 'secondary' | 'tertiary';
+      return colors[hue];
+    }
+
+    return colors[key];
+  }
+
+  /**
+   * Current hex value for a swatch cell, falling back to the platform default
+   * when the (optional) palette field is missing.
+   *
+   * @param key - Palette key of the swatch cell
+   * @returns The color value to display/title
+   */
+  swatchValue(key: keyof ThemeColors): string {
+    return { ...DEFAULT_PLATFORM_COLORS, ...this.currentColors() }[key] ?? '';
+  }
+
+  /**
    * Update custom color
    * 
-   * @param colorType - Type of color to update (primary/secondary/accent)
+   * @param colorType - Type of color to update (primary/secondary/tertiary)
    * @param event - Color input change event
    */
-  updateCustomColor(colorType: 'primary' | 'secondary' | 'accent', event: Event): void {
+  updateCustomColor(colorType: 'primary' | 'secondary' | 'tertiary', event: Event): void {
     const input = event.target as HTMLInputElement;
     const color = input.value;
 

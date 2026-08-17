@@ -1,0 +1,151 @@
+<div class="sponsor-management">
+  <div class="page-header">
+    <h2>Sponsor Management</h2>
+    <button class="btn btn--primary" (click)="openForm()">+ Add Sponsor</button>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>Add New Sponsor</h3>
+
+        <form [formRoot]="sponsorForm" (submit)="submitForm()">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="name">Sponsor Name *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="name"
+                [formField]="sponsorForm.name"
+              />
+              <app-field-errors [field]="sponsorForm.name" />
+            </div>
+
+            <div class="form-field">
+              <label for="artistId">Artist ID *</label>
+              <input
+                class="form-field__control"
+                type="text"
+                id="artistId"
+                [formField]="sponsorForm.artistId"
+              />
+              <app-field-errors [field]="sponsorForm.artistId" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="logoUrl">Logo URL</label>
+            <input
+              class="form-field__control"
+              type="url"
+              id="logoUrl"
+              [formField]="sponsorForm.logoUrl"
+              placeholder="https://example.com/logo.png"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="websiteUrl">Website URL</label>
+            <input
+              class="form-field__control"
+              type="url"
+              id="websiteUrl"
+              [formField]="sponsorForm.websiteUrl"
+              placeholder="https://example.com"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="description">Description</label>
+            <textarea
+              class="form-field__control"
+              id="description"
+              [formField]="sponsorForm.description"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="tier">Sponsorship Tier</label>
+            <select class="form-field__control" id="tier" [formField]="sponsorForm.tier">
+              <option value="bronze">Bronze</option>
+              <option value="silver">Silver</option>
+              <option value="gold">Gold</option>
+              <option value="platinum">Platinum</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="closeForm()"
+              [disabled]="isSubmitting()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn--primary" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Adding...' : 'Add Sponsor' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <div class="sponsors-list">
+    @if (isLoading()) {
+      <div class="loading-state">Loading sponsors...</div>
+    } @else if (sponsors().length === 0) {
+      <div class="empty-state">
+        <p>No sponsors found. Add your first sponsor to get started.</p>
+      </div>
+    } @else {
+      <div class="sponsors-grid">
+        @for (sponsor of sponsors(); track sponsor.id) {
+          <div class="sponsor-card">
+            <div class="sponsor-header" [style.border-color]="getTierColor(sponsor.tier)">
+              <h4>{{ sponsor.name }}</h4>
+              <span class="tier-badge" [style.background]="getTierColor(sponsor.tier)">
+                {{ sponsor.tier }}
+              </span>
+            </div>
+            <div class="sponsor-body">
+              @if (sponsor.logoUrl) {
+                <div class="sponsor-logo">
+                  <img [src]="sponsor.logoUrl" [alt]="sponsor.name" />
+                </div>
+              }
+              @if (sponsor.description) {
+                <p class="sponsor-description">{{ sponsor.description }}</p>
+              }
+              @if (sponsor.websiteUrl) {
+                <a
+                  [href]="sponsor.websiteUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="sponsor-link"
+                >
+                  Visit Website
+                </a>
+              }
+            </div>
+            <div class="sponsor-actions">
+              <button class="btn btn--danger btn--sm" (click)="deleteSponsor(sponsor)">
+                Delete
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

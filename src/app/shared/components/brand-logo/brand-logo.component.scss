@@ -1,0 +1,30 @@
+:host {
+  display: inline-block;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.brand-logo__img {
+  display: block;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+}
+
+/* Dark theme (default) and high-contrast: white recolored variant. */
+.brand-logo__img--on-dark {
+  display: block;
+}
+
+.brand-logo__img--on-light {
+  display: none;
+}
+
+/* Light theme: original black/green artwork. */
+html[data-theme='light'] .brand-logo__img--on-dark {
+  display: none;
+}
+
+html[data-theme='light'] .brand-logo__img--on-light {
+  display: block;
+}

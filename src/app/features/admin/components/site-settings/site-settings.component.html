@@ -1,0 +1,103 @@
+<div class="site-settings">
+  <div class="page-header">
+    <div>
+      <h2>Site Settings</h2>
+      <p class="site-settings__subtitle">
+        Choose the default platform brand colors used everywhere an artist hasn't defined their own theme.
+      </p>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="site-settings__loading">
+      <app-loading-spinner size="md" aria-label="Loading site settings" />
+    </div>
+  } @else {
+    @if (error()) {
+      <div class="error-banner">
+        <p>{{ error() }}</p>
+        <button type="button" (click)="dismissError()" [attr.aria-label]="'Dismiss error'">×</button>
+      </div>
+    }
+
+    @if (saved()) {
+      <div class="alert alert--success" role="status">Site colors saved and applied.</div>
+    }
+
+    <div class="settings-card">
+      <div class="settings-card__header">
+        <h3>Platform Colors</h3>
+        <p>
+          These tokens drive buttons, links, focus rings, and semantic states. Artists can override them
+          with their own theme on their pages.
+        </p>
+      </div>
+
+      <div class="settings-card__body">
+        <div class="color-matrix">
+          <div class="color-matrix__header">
+            <span class="color-matrix__header-corner" aria-hidden="true"></span>
+            @for (hue of hues; track hue.label) {
+              <span class="color-matrix__header-cell">{{ hue.label }}</span>
+            }
+          </div>
+
+          @for (row of colorRows; track row.label) {
+            <div class="color-matrix__row">
+              <span class="color-matrix__row-label">{{ row.label }}</span>
+              @for (cell of row.cells; track cell.key) {
+                <div class="form-field color-matrix__cell">
+                  <label class="color-matrix__caption" [for]="cell.key">
+                    {{ hueLabelFor(cell.key) }} · {{ row.label }}
+                  </label>
+                  <div class="color-input">
+                    <input
+                      type="color"
+                      [id]="cell.key"
+                      [name]="cell.key"
+                      class="form-field__control"
+                      [value]="colorValue(cell.key)"
+                      (input)="updateColor(cell.key, $event)"
+                    />
+                    <span class="color-input__hex">{{ colorValue(cell.key) }}</span>
+                  </div>
+                  <span class="form-field__hint">Text contrast: {{ hintFor(cell.key) }}:1</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-field color-matrix__background">
+          <label for="background">Background</label>
+          <div class="color-input">
+            <input
+              type="color"
+              id="background"
+              name="background"
+              class="form-field__control"
+              [value]="colors().background ?? backgroundDefault"
+              (input)="updateColor('background', $event)"
+            />
+            <span class="color-input__hex">{{ colors().background ?? backgroundDefault }}</span>
+          </div>
+          <span class="form-field__hint">Text contrast: {{ contrast().background }}:1</span>
+        </div>
+      </div>
+
+      <div class="settings-card__footer">
+        <button type="button" class="btn btn--secondary" (click)="onReset()" [disabled]="isSaving()">
+          Reset to Defaults
+        </button>
+        <button type="button" class="btn btn--primary" (click)="onSave()" [disabled]="isSaving()">
+          @if (isSaving()) {
+            <app-loading-spinner size="sm" />
+            <span>Saving...</span>
+          } @else {
+            <span>Save Changes</span>
+          }
+        </button>
+      </div>
+    </div>
+  }
+</div>

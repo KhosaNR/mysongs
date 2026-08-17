@@ -1,0 +1,39 @@
+<div class="approvals">
+  <h2 class="approvals__title">Artist Approvals</h2>
+  <p class="approvals__subtitle">Review and approve new artist applications.</p>
+
+  @if (error()) {
+    <app-error-banner [message]="error()!" (dismiss)="clearError()" />
+  }
+  @if (successMessage()) {
+    <div class="approvals__success" role="status" (click)="clearSuccess()" (keydown.enter)="clearSuccess()" (keydown.space)="clearSuccess()" tabindex="0">{{ successMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="approvals__loading"><app-loading-spinner size="md" aria-label="Loading applications" /></div>
+  } @else if (applications().length === 0) {
+    <div class="approvals__empty"><p>No pending artist applications.</p></div>
+  } @else {
+    <div class="approvals__list">
+      @for (app of applications(); track app.user.id) {
+        <div class="approval-card">
+          <div class="approval-card__info">
+            <h3 class="approval-card__name">{{ app.artist.name }}</h3>
+            <span class="approval-card__email">{{ app.user.email }}</span>
+            <p class="approval-card__meta">
+              Artist ID: <code>{{ app.artist.artistId }}</code>
+              @if (app.artist.genre) { <span class="approval-card__genre">{{ app.artist.genre }}</span> }
+            </p>
+          </div>
+          <div class="approval-card__actions">
+            <input type="text" class="form-field__control approval-card__reason" placeholder="Rejection reason" [attr.disabled]="busyUserId() === app.user.id ? true : null" (input)="onReasonChange(app.user.id, $event)" />
+            <button type="button" class="btn btn--primary" [disabled]="busyUserId() === app.user.id" (click)="approve(app.user.id, app.artist.artistId, app.user.displayName)">
+              @if (busyUserId() === app.user.id) { <app-loading-spinner size="sm" /> } @else { Approve }
+            </button>
+            <button type="button" class="btn btn--secondary" [disabled]="busyUserId() === app.user.id" (click)="reject(app.user.id, app.artist.artistId)">Reject</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

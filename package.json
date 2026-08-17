@@ -1,5 +1,5 @@
 {
-  "name": "leo-bee",
+  "name": "my-songs",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:leo-bee": "node dist/leo-bee/server/server.mjs",
+    "serve:ssr:my-songs": "node dist/my-songs/server/server.mjs",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
     "format": "prettier --write \"src/**/*.{ts,html,scss,json}\"",
@@ -21,7 +21,9 @@
     "emulators:export": "firebase emulators:export ./firebase-export",
     "emulators:import": "firebase emulators:start --import=./firebase-export",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
-    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes"
+    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
+    "start:qa": "ng serve --configuration qa",
+    "build:qa": "ng build --configuration qa"
   },
   "lint-staged": {
     "*.ts": [
@@ -41,11 +43,13 @@
   "private": true,
   "packageManager": "npm@11.16.0",
   "dependencies": {
+    "@angular/cdk": "^22.1.1",
     "@angular/common": "^22.0.0",
     "@angular/compiler": "^22.0.0",
     "@angular/core": "^22.0.0",
     "@angular/fire": "^20.0.1",
     "@angular/forms": "^22.0.0",
+    "@angular/material": "^22.1.1",
     "@angular/platform-browser": "^22.0.0",
     "@angular/platform-server": "^22.0.0",
     "@angular/router": "^22.0.0",
@@ -53,8 +57,11 @@
     "@cloudflare/workers-types": "^5.20260716.1",
     "express": "^5.1.0",
     "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0",
+    "fuse.js": "^7.5.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "tsx": "^4.23.1"
   },
   "devDependencies": {
     "@angular/build": "^22.0.7",

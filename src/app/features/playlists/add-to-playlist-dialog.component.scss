@@ -1,0 +1,117 @@
+.add-to-playlist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.add-to-playlist__guest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+
+.add-to-playlist__icon {
+  width: 48px;
+  height: 48px;
+  color: var(--accent-primary);
+}
+
+.add-to-playlist__message {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.add-to-playlist__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.add-to-playlist__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.add-to-playlist__loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.add-to-playlist__feedback {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-success);
+  color: var(--text-on-success);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.add-to-playlist__subtitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.add-to-playlist__empty {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.add-to-playlist__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.add-to-playlist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.add-to-playlist__row-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.add-to-playlist__row-name {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-to-playlist__row-count {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.add-to-playlist__create {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.add-to-playlist__create .form-field__control {
+  flex: 1;
+}

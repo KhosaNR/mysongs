@@ -1,0 +1,118 @@
+<div class="fan-analytics">
+  <div class="page-header">
+    <h2>Fan Analytics</h2>
+    <button class="btn btn--primary" (click)="generateAnalytics()" [disabled]="isGenerating()">
+      {{ isGenerating() ? 'Generating...' : 'Generate Analytics' }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button (click)="clearError()">×</button>
+    </div>
+  }
+
+  <div class="period-selector">
+    <label for="timePeriod">Time Period:</label>
+    <select id="timePeriod" class="form-field__control" [value]="selectedPeriod()" (change)="onPeriodChange($any($event.target).value)">
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+      <option value="90d">Last 90 days</option>
+      <option value="1y">Last year</option>
+    </select>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">Loading analytics data...</div>
+  } @else if (analytics().length === 0) {
+    <div class="empty-state">
+      <p>No analytics data found. Click "Generate Analytics" to create your first report.</p>
+    </div>
+  } @else {
+    <div class="analytics-list">
+      @for (report of analytics(); track report.id) {
+        <div class="analytics-card">
+          <div class="analytics-header">
+            <div>
+              <h3>{{ report.period }} Analytics</h3>
+              <p class="analytics-date">Generated: {{ formatDate(report.generatedAt) }}</p>
+            </div>
+          </div>
+
+          <div class="analytics-stats">
+            <div class="stat-item">
+              <span class="stat-label">Total Listeners</span>
+              <span class="stat-value">{{ formatNumber(report.totalListeners) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">New Listeners</span>
+              <span class="stat-value">{{ formatNumber(report.newListeners) }}</span>
+            </div>
+          </div>
+
+          @if (report.topTracks && report.topTracks.length > 0) {
+            <div class="analytics-section">
+              <h4>Popular Tracks</h4>
+              <div class="top-items">
+                @for (track of report.topTracks; track track.trackId) {
+                  <div class="top-item">
+                    <span class="item-name">{{ track.title }}</span>
+                    <span class="item-value">{{ formatNumber(track.playCount) }} plays</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (report.topLocations && report.topLocations.length > 0) {
+            <div class="analytics-section">
+              <h4>Listener Locations</h4>
+              <div class="location-grid">
+                @for (location of report.topLocations; track location.city) {
+                  <div class="location-item">
+                    <span class="location-name">{{ location.city }}, {{ location.country }}</span>
+                    <span class="location-count">{{ formatNumber(location.listenerCount) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (report.deviceBreakdown && report.deviceBreakdown.length > 0) {
+            <div class="analytics-section">
+              <h4>Device Breakdown</h4>
+              <div class="device-list">
+                @for (device of report.deviceBreakdown; track device.device) {
+                  <div class="device-item">
+                    <div class="device-info">
+                      <span class="device-name">{{ device.device }}</span>
+                      <span class="device-percentage">{{ device.percentage.toFixed(1) }}%</span>
+                    </div>
+                    <div class="device-bar">
+                      <div class="device-bar-fill" [style.width.%]="device.percentage"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (report.peakListeningHours && report.peakListeningHours.length > 0) {
+            <div class="analytics-section">
+              <h4>Peak Listening Hours</h4>
+              <div class="hours-grid">
+                @for (hour of report.peakListeningHours; track hour.hour) {
+                  <div class="hour-item">
+                    <span class="hour-time">{{ hour.hour }}:00</span>
+                    <span class="hour-count">{{ formatNumber(hour.count) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

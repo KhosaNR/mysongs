@@ -1,0 +1,76 @@
+:host {
+  display: block;
+}
+
+.field-full {
+  width: 100%;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.form-section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-primary);
+
+  h4 {
+    margin: 0 0 var(--space-3);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+}
+
+.collection-form__empty {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+}
+
+.collection-form__songs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.collection-form__song + .collection-form__song {
+  border-top: 1px solid var(--border-primary);
+}
+
+.collection-form__song-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-tertiary);
+  }
+}
+
+.collection-form__song-title {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.error-banner__dismiss {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+
+mat-progress-spinner {
+  display: inline-block;
+  margin-right: var(--space-2);
+  vertical-align: middle;
+}

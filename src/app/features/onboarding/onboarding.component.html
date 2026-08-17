@@ -1,0 +1,161 @@
+<div class="onboarding-page">
+  <!-- Brand Panel -->
+  <aside class="onboarding-brand">
+    <a class="onboarding-brand__logo" routerLink="/" aria-label="My Songs home">
+      <app-brand-logo />
+      <span>My Songs</span>
+    </a>
+
+    <div class="onboarding-brand__content">
+      <p class="onboarding-brand__eyebrow">South African music, owned by the artist</p>
+      <h1 class="onboarding-brand__headline">Your sound.<br />Your story.<br />Your fans.</h1>
+      <ul class="onboarding-brand__features">
+        <li>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+          Stream full previews for free
+        </li>
+        <li>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+            />
+          </svg>
+          Support SA artists as low as R5
+        </li>
+        <li>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          Your downloads, your library
+        </li>
+      </ul>
+    </div>
+
+    <p class="onboarding-brand__footer">&copy; {{ currentYear }} My Songs</p>
+  </aside>
+
+  <!-- Form Panel -->
+  <div class="onboarding-card">
+    <div class="onboarding-steps">
+      <div class="step-indicators">
+        @for (step of [1, 2, 3]; track step) {
+          <div
+            class="step-dot"
+            [class.step-dot--active]="step === currentStep()"
+            [class.step-dot--completed]="step < currentStep()"
+          ></div>
+        }
+      </div>
+
+      @if (error()) {
+        <app-error-banner [message]="error()!" (dismiss)="clearError()" />
+      }
+
+      @if (currentStep() === 1) {
+        <div class="onboarding-step">
+          <div class="step-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+          </div>
+          <h2 class="step-title">Welcome to My Songs!</h2>
+          <p class="step-description">
+            Stream your favorite tracks, discover new music, and support the artist by purchasing
+            high-quality downloads. Let's get you set up!
+          </p>
+        </div>
+      }
+
+      @if (currentStep() === 2) {
+        <div class="onboarding-step">
+          <div class="step-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path
+                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+              />
+            </svg>
+          </div>
+          <h2 class="step-title">Choose Your Theme</h2>
+          <p class="step-description">
+            You can customize the look and feel of your experience. Switch between light and dark
+            modes, or choose an artist theme in your account settings.
+          </p>
+          <p class="step-tip">Tip: You can change these preferences anytime in Account Settings.</p>
+        </div>
+      }
+
+      @if (currentStep() === 3) {
+        <div class="onboarding-step">
+          <div class="step-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <h2 class="step-title">You're All Set!</h2>
+          <p class="step-description">
+            Your account is ready. Start exploring tracks, create playlists, and enjoy the music.
+            Streaming is free — purchases support the artist!
+          </p>
+        </div>
+      }
+
+      <div class="onboarding-actions">
+        @if (currentStep() > 1) {
+          <button type="button" class="btn btn--secondary" (click)="previousStep()">Back</button>
+        }
+
+        @if (currentStep() < totalSteps) {
+          <button type="button" class="btn btn--primary" (click)="nextStep()">Continue</button>
+        }
+
+        @if (currentStep() === totalSteps) {
+          <button
+            type="button"
+            class="btn btn--primary"
+            (click)="completeOnboarding()"
+            [disabled]="isLoading()"
+          >
+            @if (isLoading()) {
+              <app-loading-spinner size="sm" />
+              <span>Getting started...</span>
+            } @else {
+              <span>Start Exploring</span>
+            }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>

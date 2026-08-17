@@ -1,0 +1,8 @@
+<div class="artist-card">
+  <div class="artist-card__content">
+    <h3 class="artist-card__name">{{ result().item.name }}</h3>
+    @if (result().item.bio) {
+      <p class="artist-card__bio">{{ result().item.bio }}</p>
+    }
+  </div>
+</div>

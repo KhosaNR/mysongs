@@ -1,0 +1,202 @@
+<div class="album-management">
+  <div class="page-header">
+    <h2>My Albums</h2>
+    <div class="header-actions">
+      <mat-slide-toggle [checked]="showDeleted()" (change)="showDeleted.set($event.checked)">
+        Show Deleted
+      </mat-slide-toggle>
+      <button mat-flat-button (click)="openCreateForm()">
+        <mat-icon>add</mat-icon>
+        New Album
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="clearError()">×</button>
+    </div>
+  }
+
+  <div class="albums-list">
+    @if (selectedAlbum()) {
+      @let album = selectedAlbum()!;
+      <div class="conta" [class.deleted]="album.isDeleted">
+        <div class="conta-header">
+          <button mat-stroked-button (click)="closeContA()">
+            <mat-icon>arrow_back</mat-icon>
+            Albums
+          </button>
+        </div>
+
+        <div class="album-details-banner">
+          <div class="banner-cover">
+            @if (album.artworkUrl) {
+              <img [src]="album.artworkUrl" [alt]="album.title" />
+            } @else {
+              <div class="cover-placeholder"><mat-icon>album</mat-icon></div>
+            }
+          </div>
+          <div class="banner-info">
+            <h3>{{ album.title }}</h3>
+            <div class="banner-meta">
+              @if (album.genre) {
+                <span>{{ album.genre }}</span>
+              }
+              @if (album.releaseDate) {
+                <span>{{ album.releaseDate | date: 'yyyy' }}</span>
+              }
+              @if (album.country) {
+                <span>{{ album.country }}</span>
+              }
+            </div>
+            <div class="banner-credits">
+              @if (album.credits?.writtenBy) {
+                <p>Written by {{ album.credits.writtenBy }}</p>
+              }
+              @if (album.credits?.producedBy) {
+                <p>Produced by {{ album.credits.producedBy }}</p>
+              }
+              @if (album.credits?.mixedMasteredBy) {
+                <p>Mixed/Mastered by {{ album.credits.mixedMasteredBy }}</p>
+              }
+            </div>
+            <p class="banner-track-count">
+              {{ trackCounts()[album.id] || 0 }} track{{
+                (trackCounts()[album.id] || 0) === 1 ? '' : 's'
+              }}
+            </p>
+            @if (album.isDeleted) {
+              <span class="deleted-badge">Deleted</span>
+            }
+            <div class="banner-actions">
+              <button mat-stroked-button (click)="openEditForm(album)">Edit</button>
+              @if (album.isDeleted) {
+                <button mat-stroked-button (click)="restoreAlbum(album)">Restore</button>
+              } @else {
+                <button mat-stroked-button color="warn" (click)="deleteAlbum(album)">Delete</button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="tracks-section">
+          <div class="tracks-header">
+            <h4>Tracks</h4>
+            <button mat-flat-button (click)="addSongToAlbum(album)">
+              <mat-icon>add</mat-icon>
+              Add Song
+            </button>
+          </div>
+
+          @if (isLoadingTracks()) {
+            <div class="loading-state">Loading tracks...</div>
+          } @else if (albumSongs().length === 0) {
+            <div class="empty-state">
+              <p>No tracks in this album yet.</p>
+              <p class="hint">Click "Add Song" to upload the first track.</p>
+            </div>
+          } @else {
+            <table mat-table [dataSource]="albumSongs()" class="data-table">
+              <ng-container matColumnDef="trackNumber">
+                <th mat-header-cell *matHeaderCellDef>#</th>
+                <td mat-cell *matCellDef="let song">{{ trackNumberFor(song) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="title">
+                <th mat-header-cell *matHeaderCellDef>Title</th>
+                <td mat-cell *matCellDef="let song">{{ song.title }}</td>
+              </ng-container>
+              <ng-container matColumnDef="duration">
+                <th mat-header-cell *matHeaderCellDef>Duration</th>
+                <td mat-cell *matCellDef="let song">{{ formatDuration(song.duration) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="video">
+                <th mat-header-cell *matHeaderCellDef>Video</th>
+                <td mat-cell *matCellDef="let song">
+                  @if (song.youtubeVideoId) {
+                    <mat-icon class="video-icon">play_circle</mat-icon>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let song"><span class="muted">Manage on Songs tab</span></td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+            </table>
+          }
+        </div>
+      </div>
+    } @else if (isLoading()) {
+      <div class="loading-state">Loading albums...</div>
+    } @else if (albums().length === 0) {
+      <div class="empty-state">
+        <p>
+          No albums found{{ showDeleted() ? '' : '. Toggle "Show Deleted" to see deleted albums' }}.
+        </p>
+        <p class="hint">Create your first album using the button above.</p>
+      </div>
+    } @else {
+      <div class="albums-grid">
+        @for (album of albums(); track album.id) {
+          <mat-card
+            class="album-card"
+            [class.deleted]="album.isDeleted"
+            appearance="outlined"
+            (click)="openContA(album)"
+          >
+            <div class="album-cover">
+              @if (album.artworkUrl) {
+                <img [src]="album.artworkUrl" [alt]="album.title" />
+              } @else {
+                <div class="cover-placeholder"><mat-icon>album</mat-icon></div>
+              }
+            </div>
+            <mat-card-content>
+              <h3>{{ album.title }}</h3>
+              <p class="album-meta">
+                {{ trackCounts()[album.id] || 0 }} track{{
+                  (trackCounts()[album.id] || 0) === 1 ? '' : 's'
+                }}
+                @if (album.releaseDate) {
+                  · {{ album.releaseDate | date: 'yyyy' }}
+                }
+              </p>
+              @if (album.isDeleted) {
+                <span class="deleted-badge">Deleted</span>
+              }
+            </mat-card-content>
+            <mat-card-actions>
+              <button
+                mat-stroked-button
+                (click)="openEditForm(album); $event.stopPropagation()"
+              >
+                Edit
+              </button>
+              @if (album.isDeleted) {
+                <button
+                  mat-stroked-button
+                  (click)="restoreAlbum(album); $event.stopPropagation()"
+                >
+                  Restore
+                </button>
+              } @else {
+                <button
+                  mat-stroked-button
+                  color="warn"
+                  (click)="deleteAlbum(album); $event.stopPropagation()"
+                >
+                  Delete
+                </button>
+              }
+            </mat-card-actions>
+          </mat-card>
+        }
+      </div>
+    }
+  </div>
+</div>

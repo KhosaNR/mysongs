@@ -1,0 +1,98 @@
+name: CI/CD - My Songs
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build QA version
+        run: npm run build:qa
+
+      - name: Run tests
+        run: npm test -- --code-coverage
+
+  deploy-qa:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build QA version
+        run: npm run build:qa
+
+      - name: Deploy to Firebase QA Channel
+        uses: w9jdt/firebaser@master
+        with:
+          args: firebase hosting:channel:create qa
+
+      - name: Deploy QA Channel
+        uses: w9jdt/firebaser@master
+        with:
+          args: firebase hosting:channel:deploy qa
+
+      - name: Comment QA URL on PR
+        if: github.event_name == 'pull_request'
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          message: |
+            ## QA Channel Deployed
+
+            The QA channel has been deployed automatically!
+
+            **Preview URL:** https://leo-bee-music--qa-77mymrfu.web.app
+
+            Test all pages, search, audio player, and authentication.
+
+  promote-to-production:
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Promote QA channel to production
+        uses: w9jdt/firebaser@master
+        with:
+          args: firebase hosting:promote qa

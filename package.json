@@ -23,7 +23,9 @@
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
     "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
     "start:qa": "ng serve --configuration qa",
-    "build:qa": "ng build --configuration qa"
+    "build:qa": "ng build --configuration qa",
+    "firebase:channel:qa": "firebase hosting:channel:create qa && firebase hosting:channel:deploy qa",
+    "firebase:promote:qa": "firebase hosting:promote qa"
   },
   "lint-staged": {
     "*.ts": [

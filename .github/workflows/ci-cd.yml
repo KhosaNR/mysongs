@@ -71,6 +71,77 @@ jobs:
       - name: Run tests
         run: npm run test:ci
 
+  deploy-dev:
+    name: Deploy to Dev Channel
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create environment files
+        run: |
+          # Copy the committed placeholder template to the gitignored base file so the
+          # app's `import ... from '../environments/environment'` resolves in CI. The
+          # `qa` build configuration then file-replaces it with environment.qa.ts.
+          # The dev channel lives on the QA project, so it shares the QA Firebase config.
+          cp src/environments/environment.example.ts src/environments/environment.ts
+          cat > src/environments/environment.qa.ts << 'EOF'
+          export const environment = {
+            production: false,
+            firebase: {
+              projectId: '${{ secrets.FIREBASE_QA_PROJECT_ID }}',
+              appId: '${{ secrets.FIREBASE_QA_APP_ID }}',
+              apiKey: '${{ secrets.FIREBASE_QA_API_KEY }}',
+              authDomain: '${{ secrets.FIREBASE_QA_AUTH_DOMAIN }}',
+              storageBucket: '${{ secrets.FIREBASE_QA_STORAGE_BUCKET }}',
+              messagingSenderId: '${{ secrets.FIREBASE_QA_MESSAGING_SENDER_ID }}',
+            },
+            yoco: {
+              publicKey: '${{ secrets.YOCO_QA_PUBLIC_KEY }}',
+            },
+            api: {
+              workerUrl: '${{ secrets.FIREBASE_QA_WORKER_URL }}',
+            },
+          };
+          EOF
+          # Fail fast if any required QA secret is missing or empty.
+          if grep -qE "projectId: ''|appId: ''|apiKey: ''|authDomain: ''|storageBucket: ''|messagingSenderId: ''|publicKey: ''|workerUrl: ''" src/environments/environment.qa.ts; then
+            echo "::error::One or more QA secrets are empty. Add FIREBASE_QA_*, YOCO_QA_PUBLIC_KEY and FIREBASE_QA_WORKER_URL under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Build QA version
+        run: npm run build:qa
+
+      - name: Deploy to Firebase Dev Channel
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::FIREBASE_TOKEN secret is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          npx --yes firebase-tools hosting:channel:deploy dev --project ${{ secrets.FIREBASE_QA_PROJECT_ID }} --expires 30d --token "$FIREBASE_TOKEN" --non-interactive
+
+
   deploy-qa:
     name: Deploy to QA
     needs: build-and-test

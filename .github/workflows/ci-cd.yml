@@ -131,9 +131,14 @@ jobs:
         run: npm run build:qa
 
       - name: Deploy to Firebase QA Hosting
-        uses: w9jdt/firebaser@master
-        with:
-          args: firebase deploy --only hosting --project ${{ secrets.FIREBASE_QA_PROJECT_ID }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::FIREBASE_TOKEN secret is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          npx --yes firebase-tools deploy --only hosting --project ${{ secrets.FIREBASE_QA_PROJECT_ID }} --token "$FIREBASE_TOKEN" --non-interactive
 
   deploy-prod:
     name: Deploy to Production
@@ -195,6 +200,11 @@ jobs:
         run: npm run build
 
       - name: Deploy to Firebase Production Hosting
-        uses: w9jdt/firebaser@master
-        with:
-          args: firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROD_PROJECT_ID }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::FIREBASE_TOKEN secret is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          npx --yes firebase-tools deploy --only hosting --project ${{ secrets.FIREBASE_PROD_PROJECT_ID }} --token "$FIREBASE_TOKEN" --non-interactive

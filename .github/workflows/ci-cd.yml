@@ -2,9 +2,9 @@ name: CI/CD - My Songs
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-and-test:
@@ -12,6 +12,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Guard against accidental secret commits
+        run: |
+          if git grep -nIE "AIza[0-9A-Za-z_-]{35}|pk_live_[0-9A-Za-z]+" -- ':!package-lock.json' ':!workers/package-lock.json'; then
+            echo "::error::A real Firebase API key or Yoco live key was found in tracked files. Remove it before committing."
+            exit 1
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -22,8 +29,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create QA environment file
+      - name: Create environment files
         run: |
+          # Copy the committed placeholder template to the gitignored base file so the
+          # app's `import ... from '../environments/environment'` resolves in CI. The
+          # `qa` build configuration then file-replaces it with environment.qa.ts.
+          cp src/environments/environment.example.ts src/environments/environment.ts
           cat > src/environments/environment.qa.ts << 'EOF'
           export const environment = {
             production: false,
@@ -43,6 +54,11 @@ jobs:
             },
           };
           EOF
+          # Fail fast if any required QA secret is missing or empty.
+          if grep -qE "projectId: ''|appId: ''|apiKey: ''|authDomain: ''|storageBucket: ''|messagingSenderId: ''|publicKey: ''|workerUrl: ''" src/environments/environment.qa.ts; then
+            echo "::error::One or more QA secrets are empty. Add FIREBASE_QA_*, YOCO_QA_PUBLIC_KEY and FIREBASE_QA_WORKER_URL under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
 
       - name: Build QA version
         run: npm run build:qa
@@ -70,8 +86,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create QA environment file
+      - name: Create environment files
         run: |
+          # Copy the committed placeholder template to the gitignored base file so the
+          # app's `import ... from '../environments/environment'` resolves in CI. The
+          # `qa` build configuration then file-replaces it with environment.qa.ts.
+          cp src/environments/environment.example.ts src/environments/environment.ts
           cat > src/environments/environment.qa.ts << 'EOF'
           export const environment = {
             production: false,
@@ -91,6 +111,11 @@ jobs:
             },
           };
           EOF
+          # Fail fast if any required QA secret is missing or empty.
+          if grep -qE "projectId: ''|appId: ''|apiKey: ''|authDomain: ''|storageBucket: ''|messagingSenderId: ''|publicKey: ''|workerUrl: ''" src/environments/environment.qa.ts; then
+            echo "::error::One or more QA secrets are empty. Add FIREBASE_QA_*, YOCO_QA_PUBLIC_KEY and FIREBASE_QA_WORKER_URL under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
 
       - name: Build QA version
         run: npm run build:qa

@@ -2,13 +2,18 @@ name: CI/CD - My Songs
 
 on:
   push:
-    branches: [main]
+    branches: [dev, qa, main]
   pull_request:
-    branches: [main]
+    branches: [dev, qa, main]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v4
@@ -67,12 +72,17 @@ jobs:
         run: npm run test:ci
 
   deploy-qa:
+    name: Deploy to QA
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/qa'
+    environment: qa
     permissions:
       contents: read
       id-token: write
+    concurrency:
+      group: deploy-qa
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
@@ -120,34 +130,23 @@ jobs:
       - name: Build QA version
         run: npm run build:qa
 
-      - name: Deploy to Firebase QA Channel
+      - name: Deploy to Firebase QA Hosting
         uses: w9jdt/firebaser@master
         with:
-          args: firebase hosting:channel:create qa
+          args: firebase deploy --only hosting --project ${{ secrets.FIREBASE_QA_PROJECT_ID }}
 
-      - name: Deploy QA Channel
-        uses: w9jdt/firebaser@master
-        with:
-          args: firebase hosting:channel:deploy qa
-
-      - name: Comment QA URL on PR
-        if: github.event_name == 'pull_request'
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          message: |
-            ## QA Channel Deployed
-
-            The QA channel has been deployed automatically!
-
-            **Preview URL:** https://leo-bee-music--qa-77mymrfu.web.app
-
-            Test all pages, search, audio player, and authentication.
-
-  promote-to-production:
-    needs: deploy-qa
+  deploy-prod:
+    name: Deploy to Production
+    needs: build-and-test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     environment: production
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
@@ -161,7 +160,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Promote QA channel to production
+      - name: Create Production environment files
+        run: |
+          # Copy the committed placeholder template to the gitignored base file so the
+          # app's `import ... from '../environments/environment'` resolves in CI. The
+          # `production` build configuration then file-replaces it with environment.prod.ts.
+          cp src/environments/environment.example.ts src/environments/environment.ts
+          cat > src/environments/environment.prod.ts << 'EOF'
+          export const environment = {
+            production: true,
+            firebase: {
+              projectId: '${{ secrets.FIREBASE_PROD_PROJECT_ID }}',
+              appId: '${{ secrets.FIREBASE_PROD_APP_ID }}',
+              apiKey: '${{ secrets.FIREBASE_PROD_API_KEY }}',
+              authDomain: '${{ secrets.FIREBASE_PROD_AUTH_DOMAIN }}',
+              storageBucket: '${{ secrets.FIREBASE_PROD_STORAGE_BUCKET }}',
+              messagingSenderId: '${{ secrets.FIREBASE_PROD_MESSAGING_SENDER_ID }}',
+            },
+            yoco: {
+              publicKey: '${{ secrets.YOCO_PROD_PUBLIC_KEY }}',
+            },
+            api: {
+              workerUrl: '${{ secrets.FIREBASE_PROD_WORKER_URL }}',
+            },
+          };
+          EOF
+          # Fail fast if any required production secret is missing or empty.
+          if grep -qE "projectId: ''|appId: ''|apiKey: ''|authDomain: ''|storageBucket: ''|messagingSenderId: ''|publicKey: ''|workerUrl: ''" src/environments/environment.prod.ts; then
+            echo "::error::One or more production secrets are empty. Add FIREBASE_PROD_*, YOCO_PROD_PUBLIC_KEY and FIREBASE_PROD_WORKER_URL under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Build production version
+        run: npm run build
+
+      - name: Deploy to Firebase Production Hosting
         uses: w9jdt/firebaser@master
         with:
-          args: firebase hosting:promote qa
+          args: firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROD_PROJECT_ID }}

@@ -2,7 +2,7 @@
  * Sliding-window rate limiter middleware
  * 
  * Implements rate limiting using Cloudflare KV for distributed rate limiting.
- * Default: 5 requests per minute per user/IP.
+ * Default: 30 requests per minute per user/IP.
  */
 
 interface RateLimitResult {
@@ -55,9 +55,9 @@ export async function checkRateLimit(
   }
 }
 
-export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
+export function rateLimitHeaders(result: RateLimitResult, limit = 30): HeadersInit {
   return {
-    'X-RateLimit-Limit': '5',
+    'X-RateLimit-Limit': String(limit),
     'X-RateLimit-Remaining': result.remaining.toString(),
     'X-RateLimit-Reset': result.resetAt.toString()
   };

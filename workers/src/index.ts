@@ -12,7 +12,7 @@
 import { handleYocoWebhook } from './webhooks/yoco';
 import { handleSignedUrl } from './downloads/signed-url';
 import { handleUploadUrl, handleUpload, handleAssetServe } from './uploads/upload-url';
-import { corsHeaders, handleCorsPreflight } from './middleware/cors';
+import { corsForRequest, handleCorsPreflight } from './middleware/cors';
 import { checkRateLimit, rateLimitHeaders } from './middleware/rate-limiter';
 import { logger } from './utils/logger';
 
@@ -50,17 +50,32 @@ export default {
     const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
     const rateLimitIdentifier = `worker:${clientIp}`;
 
+    // Health checks are exempt from rate limiting so monitoring is never throttled.
+    if (path === '/health' && method === 'GET') {
+      return new Response(JSON.stringify({
+        status: 'ok',
+        environment: env.ENVIRONMENT,
+        timestamp: new Date().toISOString(),
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsForRequest(request),
+        },
+      });
+    }
+
     try {
-      // Apply rate limiting to all endpoints (5 req/min per IP)
-      const rateLimitResult = await checkRateLimit(rateLimitIdentifier, env, 5, 60);
+      // Apply rate limiting to all endpoints (30 req/min per IP)
+      const rateLimitResult = await checkRateLimit(rateLimitIdentifier, env, 30, 60);
       if (!rateLimitResult.allowed) {
         logger.warn('Rate limit exceeded', { identifier: rateLimitIdentifier }, env);
         return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
           status: 429,
           headers: {
             'Content-Type': 'application/json',
-            ...corsHeaders(),
-            ...rateLimitHeaders(rateLimitResult),
+            ...corsForRequest(request),
+            ...rateLimitHeaders(rateLimitResult, 30),
           },
         });
       }
@@ -87,21 +102,7 @@ export default {
         // Used as a fallback when no dedicated R2 public bucket domain
         // is configured (R2_PUBLIC_URL is empty).
         case (path.startsWith('/assets/') || path.startsWith('/stream/')) && method === 'GET':
-          return await handleAssetServe(env, path);
-
-        // Health check
-        case path === '/health' && method === 'GET':
-          return new Response(JSON.stringify({
-            status: 'ok',
-            environment: env.ENVIRONMENT,
-            timestamp: new Date().toISOString(),
-          }), {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders(),
-            },
-          });
+          return await handleAssetServe(request, env, path);
 
         // 404 for unknown routes
         default:
@@ -109,7 +110,7 @@ export default {
             status: 404,
             headers: {
               'Content-Type': 'application/json',
-              ...corsHeaders(),
+              ...corsForRequest(request),
             },
           });
       }
@@ -124,7 +125,7 @@ export default {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders(),
+          ...corsForRequest(request),
         },
       });
     }

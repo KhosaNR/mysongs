@@ -6,7 +6,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { corsHeaders } from '../middleware/cors';
+import { corsForRequest } from '../middleware/cors';
 import { validate, uploadRequestSchema } from '../utils/validation';
 import type { Env } from '../index';
 
@@ -87,7 +87,7 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
         details: validationResult.errors
       }), {
         status: 422,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -100,7 +100,7 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
         error: 'Invalid file type. Only audio and image files are allowed.'
       }), {
         status: 415,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -112,7 +112,7 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
         error: `File size exceeds maximum limit of ${maxSize / (1024 * 1024)}MB`
       }), {
         status: 413,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -144,7 +144,7 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        ...corsHeaders()
+        ...corsForRequest(request)
       }
     });
 
@@ -154,7 +154,7 @@ export async function handleUploadUrl(request: Request, env: Env): Promise<Respo
     }, env);
     return new Response(JSON.stringify({ error: 'Failed to generate upload URL' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+      headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
     });
   }
 }
@@ -170,7 +170,7 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
     if (!objectKey) {
       return new Response(JSON.stringify({ error: 'Missing object key' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -181,7 +181,7 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
         error: 'Invalid file type. Only audio and image files are allowed.'
       }), {
         status: 415,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -189,7 +189,7 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
     if (!bucket) {
       return new Response(JSON.stringify({ error: 'No suitable bucket for this file type' }), {
         status: 415,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -202,7 +202,7 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
         error: `File size exceeds maximum limit of ${maxSize / (1024 * 1024)}MB`
       }), {
         status: 413,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -236,7 +236,7 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders()
+        ...corsForRequest(request)
       }
     });
 
@@ -247,7 +247,7 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
     }, env);
     return new Response(JSON.stringify({ error: 'Failed to upload file' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+      headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
     });
   }
 }
@@ -258,11 +258,12 @@ export async function handleUpload(request: Request, env: Env, path: string): Pr
  * Used when no dedicated R2 public bucket domain is configured, so files
  * remain reachable via the same origin that handled the upload.
  *
+ * @param request - The incoming request
  * @param env - Worker environment bindings
  * @param path - The request path, e.g. `/assets/<key>` or `/stream/<key>`
  * @returns The stored object with cache headers, or 404 if missing
  */
-export async function handleAssetServe(env: Env, path: string): Promise<Response> {
+export async function handleAssetServe(request: Request, env: Env, path: string): Promise<Response> {
   try {
     const isStream = path.startsWith('/stream/');
     const objectKey = path.replace(isStream ? '/stream/' : '/assets/', '');
@@ -270,7 +271,7 @@ export async function handleAssetServe(env: Env, path: string): Promise<Response
     if (!objectKey) {
       return new Response(JSON.stringify({ error: 'Missing object key' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -280,7 +281,7 @@ export async function handleAssetServe(env: Env, path: string): Promise<Response
     if (!object) {
       return new Response(JSON.stringify({ error: 'Object not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -296,7 +297,7 @@ export async function handleAssetServe(env: Env, path: string): Promise<Response
     }, env);
     return new Response(JSON.stringify({ error: 'Failed to serve asset' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+      headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
     });
   }
 }

@@ -7,7 +7,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { corsHeaders } from '../middleware/cors';
+import { corsForRequest } from '../middleware/cors';
 import { validate, yocoWebhookSchema } from '../utils/validation';
 import type { Env } from '../index';
 
@@ -237,7 +237,6 @@ async function getFirestoreAccessToken(env: Env): Promise<string> {
   // Sign with private key
   const privateKey = env.FIRESTORE_PRIVATE_KEY.replace(/\\n/g, '\n');
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(privateKey);
   
   // Import the private key
   const pemHeader = '-----BEGIN PRIVATE KEY-----\n';
@@ -306,7 +305,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
       logger.warn('Webhook missing signature header');
       return new Response(JSON.stringify({ error: 'Missing signature' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -315,7 +314,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
       logger.warn('Invalid webhook signature');
       return new Response(JSON.stringify({ error: 'Invalid signature' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -335,7 +334,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
         details: validationResult.errors 
       }), {
         status: 422,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -378,7 +377,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
         paymentId: validatedPayload.data.id 
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -395,7 +394,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
         paymentId: validatedPayload.data.id 
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -448,7 +447,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
         paymentId: validatedPayload.data.id 
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -467,7 +466,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders()
+        ...corsForRequest(request)
       }
     });
 
@@ -479,7 +478,7 @@ export async function handleYocoWebhook(request: Request, env: Env): Promise<Res
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders()
+        ...corsForRequest(request)
       }
     });
   }

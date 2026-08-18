@@ -13,7 +13,7 @@ export interface AuthResult {
 
 export async function verifyFirebaseToken(
   request: Request,
-  env: { ENVIRONMENT: string }
+  _env: { ENVIRONMENT: string }
 ): Promise<AuthResult> {
   try {
     // Extract Authorization header
@@ -21,8 +21,6 @@ export async function verifyFirebaseToken(
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return { authenticated: false, error: 'Missing or invalid authorization header' };
     }
-
-    const idToken = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // TODO: Implement Firebase token verification
     // This will be completed in Phase 2B when we implement the validation layer

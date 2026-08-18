@@ -8,7 +8,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { corsHeaders } from '../middleware/cors';
+import { corsForRequest } from '../middleware/cors';
 import { validate, downloadRequestSchema } from '../utils/validation';
 import type { Env } from '../index';
 
@@ -233,7 +233,7 @@ export async function handleSignedUrl(request: Request, env: Env): Promise<Respo
         details: validationResult.errors 
       }), {
         status: 422,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -242,7 +242,7 @@ export async function handleSignedUrl(request: Request, env: Env): Promise<Respo
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -252,7 +252,7 @@ export async function handleSignedUrl(request: Request, env: Env): Promise<Respo
       logger.warn('Unauthorized download attempt', { userId, songId: validatedSongId }, env);
       return new Response(JSON.stringify({ error: 'Song not purchased' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -264,7 +264,7 @@ export async function handleSignedUrl(request: Request, env: Env): Promise<Respo
     if (!signedUrl) {
       return new Response(JSON.stringify({ error: 'File not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+        headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
       });
     }
 
@@ -284,7 +284,7 @@ export async function handleSignedUrl(request: Request, env: Env): Promise<Respo
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'private, max-age=300',
-        ...corsHeaders()
+        ...corsForRequest(request)
       }
     });
 
@@ -294,7 +294,7 @@ export async function handleSignedUrl(request: Request, env: Env): Promise<Respo
     }, env);
     return new Response(JSON.stringify({ error: 'Failed to generate download URL' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+      headers: { 'Content-Type': 'application/json', ...corsForRequest(request) }
     });
   }
 }

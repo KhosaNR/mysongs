@@ -56,3 +56,6 @@ src/environments/enviroment.qa.ts
 *service-account*.json
 *service-account*.key
 /nul
+
+# Stray local copy of the project (do not commit)
+/mysongs/

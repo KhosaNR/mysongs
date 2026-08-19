@@ -1,5 +1,30 @@
 import { inject, Injectable } from '@angular/core';
 import { PiiMaskService } from '../services/pii-mask.service';
+import { NetworkStatusService } from '../services/network-status.service';
+
+/**
+ * Firestore/Auth error codes that unambiguously indicate a network
+ * connectivity failure rather than an application or server error.
+ */
+const NETWORK_ERROR_CODES: ReadonlySet<string> = new Set([
+  'auth/network-request-failed',
+  'unavailable',
+  'deadline-exceeded',
+  'network-error',
+]);
+
+/**
+ * Message fragments that indicate a browser/fetch-level network failure
+ * (e.g. `TypeError: Failed to fetch`, `net::ERR_INTERNET_DISCONNECTED`).
+ */
+const NETWORK_ERROR_MESSAGE_PATTERNS: readonly RegExp[] = [
+  /failed to fetch/i,
+  /networkerror/i,
+  /^ERR_/i,
+  /network error/i,
+  /network request failed/i,
+  /service is currently unavailable/i,
+];
 
 /**
  * Centralized error handling utility for consistent error processing across all services.
@@ -30,6 +55,7 @@ import { PiiMaskService } from '../services/pii-mask.service';
 })
 export class ErrorHandler {
   private readonly piiMaskService = inject(PiiMaskService);
+  private readonly networkStatus = inject(NetworkStatusService);
 
   /**
    * Executes an async operation with centralized error handling.
@@ -51,6 +77,7 @@ export class ErrorHandler {
   ): Promise<Result<T>> {
     try {
       const data = await operation();
+      this.networkStatus.reportNetworkSuccess();
       return Result.success(data);
     } catch (error) {
       return this.handleError(error, operationName, context);
@@ -73,6 +100,7 @@ export class ErrorHandler {
   ): Result<T> {
     try {
       const data = operation();
+      this.networkStatus.reportNetworkSuccess();
       return Result.success(data);
     } catch (error) {
       return this.handleError(error, operationName, context);
@@ -96,6 +124,12 @@ export class ErrorHandler {
     // Extract error details safely
     const errorMessage = this.extractErrorMessage(error);
     const errorCode = this.extractErrorCode(error);
+
+    // Report confirmed network failures so offline-aware UI reacts to actual
+    // connectivity loss instead of the unreliable boot-time navigator.onLine.
+    if (this.isNetworkError(errorCode, errorMessage)) {
+      this.networkStatus.reportNetworkFailure();
+    }
 
     // Sanitize context for logging (mask PII)
     const sanitizedContext = this.sanitizeContext(context);
@@ -202,6 +236,22 @@ export class ErrorHandler {
     }
 
     return sanitized;
+  }
+
+  /**
+   * Determines whether a caught error represents a confirmed network
+   * connectivity failure rather than an application or server error.
+   *
+   * @param errorCode - The extracted error code (e.g. Firestore/Auth code)
+   * @param errorMessage - The extracted error message
+   * @returns true when the error indicates the network itself is unavailable
+   * @private
+   */
+  private isNetworkError(errorCode: string, errorMessage: string): boolean {
+    return (
+      NETWORK_ERROR_CODES.has(errorCode) ||
+      NETWORK_ERROR_MESSAGE_PATTERNS.some((pattern) => pattern.test(errorMessage))
+    );
   }
 
   /**

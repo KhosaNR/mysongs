@@ -168,6 +168,8 @@ export class AudioPlayerService implements OnDestroy {
     this.audioElement.addEventListener('canplay', () => {
       this.state.update(s => ({ ...s, isLoading: false, isRetrying: false }));
       this.stopStallDetection();
+      // Media actually loaded — proof the network is reachable.
+      this.networkStatus.reportNetworkSuccess();
     });
 
     // Playing state (clears retrying flag)
@@ -187,6 +189,7 @@ export class AudioPlayerService implements OnDestroy {
             break;
           case MediaError.MEDIA_ERR_NETWORK:
             errorMessage = 'Network error during playback.';
+            this.networkStatus.reportNetworkFailure();
             break;
           case MediaError.MEDIA_ERR_DECODE:
             errorMessage = 'Audio decoding failed.';
@@ -310,6 +313,7 @@ export class AudioPlayerService implements OnDestroy {
         isRetrying: false,
       }));
       this.stopStallDetection();
+      this.networkStatus.reportNetworkFailure();
       return;
     }
 

@@ -6,9 +6,10 @@ import {
   HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { ErrorHandler } from '../utils/error-handler';
 import { PiiMaskPipe } from '../../shared/pipes/pii-mask.pipe';
+import { NetworkStatusService } from '../services/network-status.service';
 
 /**
  * HTTP interceptor that catches and handles HTTP errors globally.
@@ -32,10 +33,13 @@ export function ErrorInterceptor(
 ): Observable<HttpEvent<unknown>> {
   const errorHandler = inject(ErrorHandler);
   const piiMaskPipe = inject(PiiMaskPipe);
+  const networkStatus = inject(NetworkStatusService);
 
   return next(request).pipe(
+    // Any successful response is proof the network is reachable again.
+    tap(() => networkStatus.reportNetworkSuccess()),
     catchError((error: HttpErrorResponse) => {
-      return handleError(error, request, errorHandler, piiMaskPipe);
+      return handleError(error, request, errorHandler, piiMaskPipe, networkStatus);
     })
   );
 }
@@ -53,12 +57,20 @@ function handleError(
   error: HttpErrorResponse,
   request: HttpRequest<unknown>,
   errorHandler: ErrorHandler,
-  piiMaskPipe: PiiMaskPipe
+  piiMaskPipe: PiiMaskPipe,
+  networkStatus: NetworkStatusService
 ): Observable<HttpEvent<unknown>> {
   // Extract error details
   const errorCode = extractErrorCode(error);
   const errorMessage = extractErrorMessage(error);
   const status = error.status;
+
+  // Status 0 is Angular's signal for a network-level failure (DNS lookup,
+  // connection refused, `Failed to fetch`, CORS preflight) as opposed to a
+  // server-returned HTTP error code — treat it as a confirmed offline event.
+  if (status === 0) {
+    networkStatus.reportNetworkFailure();
+  }
 
   // Sanitize request data for logging (mask PII)
   const sanitizedRequest = sanitizeRequest(request, piiMaskPipe);

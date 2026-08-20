@@ -70,6 +70,37 @@
         }
       ],
       "workers_dev": true
+    },
+    "prod": {
+      "name": "greatmusic-workers",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "R2_PUBLIC_URL": "",
+        "FIRESTORE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@greatmusic.iam.gserviceaccount.com",
+        "FIRESTORE_PROJECT_ID": "greatmusic",
+        "FIRESTORE_API_URL": "https://firestore.googleapis.com/v1"
+      },
+      "r2_buckets": [
+        {
+          "binding": "R2_STREAM_BUCKET",
+          "bucket_name": "greatmusic-stream"
+        },
+        {
+          "binding": "R2_DOWNLOAD_BUCKET",
+          "bucket_name": "greatmusic-downloads"
+        },
+        {
+          "binding": "R2_ASSETS_BUCKET",
+          "bucket_name": "greatmusic-assets"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "RATE_LIMIT_KV",
+          "id": "placeholder_greatmusic_rate_limit_kv_id"
+        }
+      ],
+      "workers_dev": true
     }
   }
 }

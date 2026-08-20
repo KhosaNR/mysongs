@@ -40,6 +40,16 @@ Deployments require a `FIREBASE_TOKEN` repository secret: generate one with
 Settings > Secrets and variables > Actions. The token's account must have access
 to both the QA and Production Firebase projects.
 
+The Production Worker auto-deploy (on `main`) additionally requires these GitHub
+secrets:
+
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API token with permission to deploy Workers,
+  plus `CLOUDFLARE_ACCOUNT_ID` (your Cloudflare account ID) when required.
+- `FIRESTORE_PROD_PRIVATE_KEY` — the production (`greatmusic`) Firestore service
+  account private key, pushed to the Worker as `FIRESTORE_PRIVATE_KEY`.
+- `YOCO_PROD_WEBHOOK_SECRET` — production Yoco webhook signing secret.
+- `YOCO_PROD_PUBLIC_KEY` — production Yoco publishable key (also used by the app).
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

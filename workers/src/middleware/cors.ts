@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4200', // Angular dev server
   'http://localhost:8787', // Worker dev server
   'https://mysongs-qa.web.app', // Firebase Hosting (QA)
+  'https://greatmusic.web.app', // Firebase Hosting (Production)
   'https://leobee.com',
   'https://www.leobee.com',
   'https://leobee-music.pages.dev', // Cloudflare Pages preview/deploy
@@ -24,7 +25,7 @@ const ALLOWED_ORIGINS = [
 function isAllowedOrigin(origin: string): boolean {
   return (
     ALLOWED_ORIGINS.includes(origin) ||
-    /^https:\/\/(?:mysongs-qa|leo-bee-music)--[a-z0-9-]+\.web\.app$/.test(origin)
+    /^https:\/\/(?:mysongs-qa|leo-bee-music|greatmusic)--[a-z0-9-]+\.web\.app$/.test(origin)
   );
 }
 

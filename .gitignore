@@ -52,6 +52,10 @@ src/environments/environment.qa.ts
 src/environments/enviroment.qa.ts
 !src/environments/environment.example.ts
 
+# Local developer working notes (not versioned)
+project_specifications/development-status.md
+project_specifications/working-notes.md
+
 # Standalone service-account files (private keys)
 *service-account*.json
 *service-account*.key

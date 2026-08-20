@@ -28,5 +28,5 @@ if (!artistContent.includes('isDeleted')) {
 - [ ] Filter soft-deleted content on home page
 - [ ] Update firestore.rules
 - [ ] Add restore option for admins
-- [ ] Update memory bank
+- [ ] Update project specifications
 </task_progress></tool_call>

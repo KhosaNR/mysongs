@@ -8,6 +8,7 @@ import { USER_ROLE } from '../../../../core/constants/navigation.constants';
 import { DEFAULT_PLATFORM_COLORS } from '../../../../core/constants/theme.constants';
 import { environment } from '../../../../../environments/environment';
 import { FieldErrorsComponent } from '../../../../shared/components/field-errors/field-errors.component';
+import { formatDuration } from '../../../../core/utils/format-duration';
 
 interface Track {
   id: string;
@@ -230,13 +231,10 @@ export class TrackManagementComponent {
   }
 
   /**
-   * Formats a duration in seconds as mm:ss for table display.
+   * Formats a duration for table display, delegating to the platform formatter.
    */
   formatDuration(seconds?: number): string {
-    if (!seconds || seconds <= 0) return '—';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds, '—');
   }
 
   /**

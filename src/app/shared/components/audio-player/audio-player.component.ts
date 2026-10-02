@@ -8,6 +8,7 @@ import type { DownloadInfo } from '../../models/purchase.interface';
 import { PurchaseDialogComponent, PurchaseDialogState } from '../purchase-dialog/purchase-dialog.component';
 import { Song } from '../../models/song.interface';
 import { formatSongCredits, type SongCredits } from '../../../core/utils/format-credits';
+import { formatDuration } from '../../../core/utils/format-duration';
 
 /**
  * Represents the active tab in expanded state.
@@ -2569,13 +2570,10 @@ export class AudioPlayerComponent {
   }
 
   /**
-   * Formats time in seconds to mm:ss display format.
+   * Formats time in seconds for the seek bar, delegating to the platform
+   * formatter so the player cannot drift from the rest of the app.
    */
   formatTime(seconds: number): string {
-    if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
-    const safe = Math.floor(seconds);
-    const mins = Math.floor(safe / 60);
-    const secs = safe % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds);
   }
 }

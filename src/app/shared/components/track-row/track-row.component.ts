@@ -9,6 +9,7 @@ import { Component, input, output, ChangeDetectionStrategy, computed } from '@an
 import { RouterModule } from '@angular/router';
 import { Song } from '../../models/song.interface';
 import { formatSongCredits } from '../../../core/utils/format-credits';
+import { formatDuration } from '../../../core/utils/format-duration';
 
 @Component({
   selector: 'app-track-row',
@@ -669,14 +670,13 @@ export class TrackRowComponent {
   });
 
   /**
-   * Format duration seconds into mm:ss display format.
+   * Formats a duration, delegating to the platform formatter.
+   *
    * @param seconds - Duration in seconds
-   * @returns Formatted string (e.g., '3:45')
+   * @returns Formatted clock string (e.g. `3:45`, or `1:01:01` past an hour)
    */
   formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds);
   }
 
   /**

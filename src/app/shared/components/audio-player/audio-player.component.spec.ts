@@ -214,11 +214,15 @@ describe('AudioPlayerComponent', () => {
   });
 
   describe('time formatting', () => {
-    it('should format seconds to mm:ss', () => {
+    it('should format seconds to mm:ss below one hour', () => {
       expect(component.formatTime(0)).toBe('0:00');
       expect(component.formatTime(65)).toBe('1:05');
       expect(component.formatTime(125)).toBe('2:05');
-      expect(component.formatTime(3661)).toBe('61:01');
+    });
+
+    it('should include the hour field at and above one hour', () => {
+      expect(component.formatTime(3600)).toBe('1:00:00');
+      expect(component.formatTime(3661)).toBe('1:01:01');
     });
 
     it('should handle NaN', () => {

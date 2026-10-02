@@ -61,7 +61,11 @@ describe('TrackRowComponent', () => {
     expect(component.formatDuration(245)).toBe('4:05');
     expect(component.formatDuration(60)).toBe('1:00');
     expect(component.formatDuration(0)).toBe('0:00');
-    expect(component.formatDuration(3661)).toBe('61:01');
+  });
+
+  it('should include the hour field at and above one hour', () => {
+    expect(component.formatDuration(3661)).toBe('1:01:01');
+    expect(component.formatDuration(3600)).toBe('1:00:00');
   });
 
   it('should render song title', () => {

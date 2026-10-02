@@ -11,6 +11,7 @@ import { Artist, ThemeColors } from '../../../shared/models/artist.interface';
 import { Song } from '../../../shared/models/song.interface';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
 import { FieldErrorsComponent } from '../../../shared/components/field-errors/field-errors.component';
+import { formatDuration } from '../../../core/utils/format-duration';
 
 export interface SongWithId extends Song {
   readonly id: string;
@@ -308,13 +309,10 @@ export class SongManagementComponent {
   }
 
   /**
-   * Formats a duration in seconds as mm:ss for table display.
+   * Formats a duration for table display, delegating to the platform formatter.
    */
   formatDuration(seconds?: number): string {
-    if (!seconds || seconds <= 0) return '—';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds, '—');
   }
 
   async saveSong(): Promise<void> {

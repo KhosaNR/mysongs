@@ -80,4 +80,71 @@ describe('UploadService', () => {
       await expect(promise).resolves.toBe(0);
     });
   });
+
+  describe('rate-limit handling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
+      return new Response(JSON.stringify(body), { status, headers });
+    }
+
+    it('should retry a throttled request and succeed once the window rolls', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(
+          jsonResponse({ error: 'Too many requests' }, 429, {
+            'X-RateLimit-Reset': String(Math.floor(Date.now() / 1000) - 5),
+          }),
+        )
+        .mockResolvedValueOnce(jsonResponse({ uploadUrl: 'https://worker.test/uploads/key' }))
+        .mockResolvedValueOnce(
+          jsonResponse({ objectKey: 'key', publicUrl: 'https://cdn.test/key' }),
+        );
+
+      const file = new File(['audio'], 'track.mp3', { type: 'audio/mpeg' });
+      const promise = service.uploadFile(file);
+
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.objectKey).toBe('key');
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it('should surface the error after exhausting the retry budget', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(jsonResponse({ error: 'Too many requests' }, 429));
+
+      const file = new File(['audio'], 'track.mp3', { type: 'audio/mpeg' });
+      const settled = service.uploadFile(file).catch((error: unknown) => error);
+
+      await vi.runAllTimersAsync();
+      const error = (await settled) as Error;
+
+      expect(error.message).toBe('Too many requests');
+      // Initial attempt plus the full retry budget.
+      expect(fetchSpy).toHaveBeenCalledTimes(4);
+    });
+
+    it('should clear the throttled flag once the upload settles', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        jsonResponse({ error: 'Too many requests' }, 429),
+      );
+
+      const file = new File(['audio'], 'track.mp3', { type: 'audio/mpeg' });
+      const settled = service.uploadFile(file).catch((error: unknown) => error);
+
+      await vi.runAllTimersAsync();
+      await settled;
+
+      expect(service.isRateLimited()).toBe(false);
+    });
+  });
 });

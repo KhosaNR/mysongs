@@ -3,6 +3,8 @@ import { AudioPlayerService } from '../../../core/services/audio-player.service'
 import { AuthService } from '../../../core/services/auth.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { signal } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { MatTooltip } from '@angular/material/tooltip';
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -655,6 +657,64 @@ describe('AudioPlayerComponent', () => {
       
       expect(tabs.length).toBe(3);
       expect(panels.length).toBe(1);
+    });
+
+    it('should attach tooltips to every icon-only media control', () => {
+      service.state.update(s => ({ ...s, currentTrackUrl: 'https://example.com/stream.mp3' }));
+      const fixture = TestBed.createComponent(AudioPlayerComponent);
+      fixture.componentInstance.isExpanded.set(true);
+      fixture.detectChanges();
+
+      // Previous, play/pause, next, shuffle, repeat, collapse — all icon-only.
+      const tooltips = fixture.debugElement.queryAll(By.directive(MatTooltip));
+      expect(tooltips.length).toBeGreaterThanOrEqual(6);
+
+      for (const tooltip of tooltips) {
+        const message = tooltip.injector.get(MatTooltip).message;
+        expect(typeof message === 'string' ? message.length : 0).toBeGreaterThan(0);
+      }
+    });
+
+    it('should pair every tooltip with a matching aria-label', () => {
+      service.state.update(s => ({ ...s, currentTrackUrl: 'https://example.com/stream.mp3' }));
+      const fixture = TestBed.createComponent(AudioPlayerComponent);
+      fixture.componentInstance.isExpanded.set(true);
+      fixture.detectChanges();
+
+      for (const tooltip of fixture.debugElement.queryAll(By.directive(MatTooltip))) {
+        const message = tooltip.injector.get(MatTooltip).message;
+        const ariaLabel = tooltip.nativeElement.getAttribute('aria-label') ?? '';
+        expect(ariaLabel.length).toBeGreaterThan(0);
+        expect(ariaLabel).toContain(String(message));
+      }
+    });
+
+    it('should keep the shuffle tooltip in sync with its state', () => {
+      service.state.update(s => ({ ...s, currentTrackUrl: 'https://example.com/stream.mp3' }));
+      const fixture = TestBed.createComponent(AudioPlayerComponent);
+      fixture.detectChanges();
+
+      const shuffle = fixture.debugElement.query(By.css('[aria-label="Enable shuffle"]'));
+      expect(shuffle).toBeTruthy();
+      expect(shuffle.injector.get(MatTooltip).message).toBe('Enable shuffle');
+
+      fixture.componentInstance.toggleShuffle();
+      fixture.detectChanges();
+
+      const enabled = fixture.debugElement.query(By.css('[aria-label="Disable shuffle"]'));
+      expect(enabled).toBeTruthy();
+      expect(enabled.injector.get(MatTooltip).message).toBe('Disable shuffle');
+    });
+
+    it('should surface the repeat state through the tooltip', () => {
+      service.state.update(s => ({ ...s, currentTrackUrl: 'https://example.com/stream.mp3' }));
+      service.repeatMode.set('one');
+      const fixture = TestBed.createComponent(AudioPlayerComponent);
+      fixture.detectChanges();
+
+      const repeat = fixture.debugElement.query(By.css('[aria-label="Repeat one track"]'));
+      expect(repeat).toBeTruthy();
+      expect(repeat.injector.get(MatTooltip).message).toBe('Repeat one track');
     });
   });
 });

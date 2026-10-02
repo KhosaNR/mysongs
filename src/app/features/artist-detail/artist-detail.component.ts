@@ -21,6 +21,7 @@ import { TrackRowComponent } from '../../shared/components/track-row/track-row.c
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
 import { AddToPlaylistDialogComponent } from '../playlists/add-to-playlist-dialog.component';
 import { AlbumFormDialogComponent, AlbumFormDialogData, AlbumFormDialogResult } from '../artist/album-management/album-form-dialog.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   CollectionFormDialogComponent,
   CollectionFormDialogData,
@@ -75,6 +76,7 @@ function normalizeText(value: string): string {
     TrackRowComponent,
     SearchInputComponent,
     AddToPlaylistDialogComponent,
+    MatTooltipModule,
   ],
   templateUrl: './artist-detail.component.html',
   styleUrl: './artist-detail.component.scss',

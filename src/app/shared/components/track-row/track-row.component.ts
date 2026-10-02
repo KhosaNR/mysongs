@@ -10,12 +10,13 @@ import { RouterModule } from '@angular/router';
 import { Song } from '../../models/song.interface';
 import { formatSongCredits } from '../../../core/utils/format-credits';
 import { formatDuration } from '../../../core/utils/format-duration';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-track-row',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule],
+  imports: [RouterModule, MatTooltipModule],
   template: `
     <div
       class="track-row"
@@ -145,7 +146,8 @@ import { formatDuration } from '../../../core/utils/format-duration';
           class="track-row__play-btn"
           [class.track-row__play-btn--playing]="isPlaying()"
           (click)="onPlayClick($event)"
-          [attr.aria-label]="isPlaying() ? 'Pause ' + song().title : 'Play ' + song().title"
+          [matTooltip]="playPauseLabel()"
+          [attr.aria-label]="playPauseLabel()"
         >
           @if (isPlaying()) {
             <svg
@@ -174,6 +176,7 @@ import { formatDuration } from '../../../core/utils/format-duration';
           type="button"
           class="track-row__share-btn"
           (click)="onShareClick($event)"
+          [matTooltip]="'Share ' + song().title"
           [attr.aria-label]="'Share ' + song().title"
         >
           <svg
@@ -200,6 +203,7 @@ import { formatDuration } from '../../../core/utils/format-duration';
             type="button"
             class="track-row__edit-btn"
             (click)="onEditClick($event)"
+            [matTooltip]="'Edit ' + song().title"
             [attr.aria-label]="'Edit ' + song().title"
           >
             <svg
@@ -224,6 +228,7 @@ import { formatDuration } from '../../../core/utils/format-duration';
             type="button"
             class="track-row__delete-btn"
             (click)="onDeleteClick($event)"
+            [matTooltip]="'Delete ' + song().title"
             [attr.aria-label]="'Delete ' + song().title"
           >
             <svg
@@ -250,6 +255,7 @@ import { formatDuration } from '../../../core/utils/format-duration';
           type="button"
           class="track-row__playlist-btn"
           (click)="onAddToPlaylistClick($event)"
+          [matTooltip]="'Add ' + song().title + ' to playlist'"
           [attr.aria-label]="'Add ' + song().title + ' to playlist'"
         >
           <svg
@@ -657,6 +663,14 @@ export class TrackRowComponent {
     const derived = formatSongCredits(this.song());
     return { text: derived.text, featured: derived.hasCredits };
   });
+
+  /**
+   * Label for the play/pause control, shared by `matTooltip` and `aria-label`
+   * so the two can never disagree.
+   */
+  protected readonly playPauseLabel = computed(() =>
+    this.isPlaying() ? `Pause ${this.song().title}` : `Play ${this.song().title}`,
+  );
 
   /**
    * Accessible label for the entire row.

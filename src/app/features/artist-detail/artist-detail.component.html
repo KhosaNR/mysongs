@@ -114,6 +114,7 @@
                     type="button"
                     class="artist-detail__album-edit"
                     (click)="openEditAlbum(album)"
+                    [matTooltip]="'Edit album ' + album.title"
                     [attr.aria-label]="'Edit album ' + album.title"
                   >
                     <span class="material-icons" aria-hidden="true">edit</span>
@@ -122,6 +123,7 @@
                     type="button"
                     class="artist-detail__album-delete"
                     (click)="deleteAlbum(album)"
+                    [matTooltip]="'Delete album ' + album.title"
                     [attr.aria-label]="'Delete album ' + album.title"
                   >
                     <span class="material-icons" aria-hidden="true">delete</span>
@@ -360,6 +362,7 @@
                     type="button"
                     class="artist-detail__album-edit"
                     (click)="openEditCollection(collection)"
+                    [matTooltip]="'Edit collection ' + collection.name"
                     [attr.aria-label]="'Edit collection ' + collection.name"
                   >
                     <span class="material-icons" aria-hidden="true">edit</span>

@@ -9,6 +9,7 @@ import { PurchaseDialogComponent, PurchaseDialogState } from '../purchase-dialog
 import { Song } from '../../models/song.interface';
 import { formatSongCredits, type SongCredits } from '../../../core/utils/format-credits';
 import { formatDuration } from '../../../core/utils/format-duration';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 /**
  * Represents the active tab in expanded state.
@@ -36,7 +37,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
   selector: 'app-audio-player',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule, PurchaseDialogComponent],
+  imports: [CommonModule, RouterModule, PurchaseDialogComponent, MatTooltipModule],
   template: `
     @if (hasTrack()) {
     <div class="audio-player" [class.audio-player--expanded]="isExpanded()">
@@ -129,6 +130,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               class="audio-player__mini-nav-btn"
               (click)="playPrevious()"
               [disabled]="!canPlayPrevious()"
+              matTooltip="Previous track"
               aria-label="Previous track"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -141,7 +143,8 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               type="button"
               class="audio-player__mini-play-btn"
               (click)="togglePlayPause($event)"
-              [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
+              [matTooltip]="playPauseLabel()"
+              [attr.aria-label]="playPauseLabel()"
               [disabled]="isLoading()"
             >
               @if (isLoading()) {
@@ -166,6 +169,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               class="audio-player__mini-nav-btn"
               (click)="playNext()"
               [disabled]="!canPlayNext()"
+              matTooltip="Next track"
               aria-label="Next track"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -180,7 +184,8 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               [class.audio-player__mode-btn--active]="isShuffled()"
               (click)="toggleShuffle()"
               [attr.aria-pressed]="isShuffled()"
-              [attr.aria-label]="isShuffled() ? 'Disable shuffle' : 'Enable shuffle'"
+              [matTooltip]="shuffleLabel()"
+              [attr.aria-label]="shuffleLabel()"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="16 3 21 3 21 8"/>
@@ -197,6 +202,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               class="audio-player__mini-nav-btn audio-player__mode-btn audio-player__mode-btn--repeat"
               [class.audio-player__mode-btn--active]="repeatMode() !== 'off'"
               (click)="cycleRepeatMode()"
+              [matTooltip]="repeatLabel()"
               [attr.aria-label]="repeatLabel()"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -215,6 +221,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               type="button"
               class="audio-player__mini-expand-btn"
               (click)="expand($event)"
+              matTooltip="Expand player"
               aria-label="Expand player"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -270,6 +277,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
             type="button"
             class="audio-player__collapse-btn"
             (click)="collapse($event)"
+            matTooltip="Collapse player"
             aria-label="Collapse player"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -449,6 +457,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                   class="audio-player__control-btn"
                   (click)="playPrevious()"
                   [disabled]="!canPlayPrevious()"
+                  matTooltip="Previous track"
                   aria-label="Previous track"
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -461,7 +470,8 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                   class="audio-player__control-btn audio-player__control-btn--play"
                   (click)="togglePlayPause($event)"
                   [disabled]="isLoading()"
-                  aria-label="{{ isPlaying() ? 'Pause' : 'Play' }}"
+                  [matTooltip]="playPauseLabel()"
+                  aria-label="{{ playPauseLabel() }}"
                 >
                   @if (isLoading()) {
                     <svg class="audio-player__spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -484,6 +494,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                   class="audio-player__control-btn"
                   (click)="playNext()"
                   [disabled]="!canPlayNext()"
+                  matTooltip="Next track"
                   aria-label="Next track"
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -498,7 +509,8 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                   [class.audio-player__mode-btn--active]="isShuffled()"
                   (click)="toggleShuffle()"
                   [attr.aria-pressed]="isShuffled()"
-                  [attr.aria-label]="isShuffled() ? 'Disable shuffle' : 'Enable shuffle'"
+                  [matTooltip]="shuffleLabel()"
+                  [attr.aria-label]="shuffleLabel()"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="16 3 21 3 21 8"/>
@@ -515,6 +527,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                   class="audio-player__control-btn audio-player__mode-btn audio-player__mode-btn--repeat"
                   [class.audio-player__mode-btn--active]="repeatMode() !== 'off'"
                   (click)="cycleRepeatMode()"
+                  [matTooltip]="repeatLabel()"
                   [attr.aria-label]="repeatLabel()"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -625,6 +638,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                     class="audio-player__purchase-error-dismiss"
                     (click)="dismissPurchaseError()"
                     aria-label="Dismiss error"
+                    matTooltip="Dismiss error"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <line x1="18" y1="6" x2="6" y2="18"/>
@@ -2024,6 +2038,19 @@ export class AudioPlayerComponent {
         return 'Repeat off';
     }
   });
+
+  /**
+   * Label for the play/pause control, shared by `matTooltip` and `aria-label`
+   * so the two can never disagree.
+   */
+  protected readonly playPauseLabel = computed(() => (this.isPlaying() ? 'Pause' : 'Play'));
+
+  /**
+   * Label for the shuffle control, shared by `matTooltip` and `aria-label`.
+   */
+  protected readonly shuffleLabel = computed(() =>
+    this.isShuffled() ? 'Disable shuffle' : 'Enable shuffle',
+  );
 
   /**
    * Current queue index.

@@ -16,6 +16,7 @@ import { Artist } from '../../../shared/models/artist.interface';
 import { PlaylistWithId } from '../../../shared/models/playlist.interface';
 import { USER_ROLE, ROUTE } from '../../../core/constants/navigation.constants';
 import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 /** A single entry in the role-aware sidebar navigation. */
 interface NavItem {
@@ -42,7 +43,7 @@ interface NavSection {
   selector: 'app-site-sidebar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule, RouterLinkActive, BrandLogoComponent],
+  imports: [RouterModule, RouterLinkActive, BrandLogoComponent, MatTooltipModule],
   templateUrl: './site-sidebar.component.html',
   styleUrl: './site-sidebar.component.scss',
 })

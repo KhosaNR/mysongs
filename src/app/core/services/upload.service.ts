@@ -10,6 +10,23 @@ export interface UploadResult {
 }
 
 /**
+ * Tags and technical data read from an uploaded audio file.
+ *
+ * Every field is optional: a file may carry no tags at all, and the artist can
+ * always override whatever is pre-filled.
+ */
+export interface AudioFileMetadata {
+  readonly title?: string;
+  readonly album?: string;
+  readonly albumArtist?: string;
+  readonly artists?: string;
+  readonly year?: number;
+  readonly trackNumber?: number;
+  readonly genre?: string;
+  readonly durationSeconds?: number;
+}
+
+/**
  * Service handling file uploads to Cloudflare R2 via the Worker.
  */
 @Injectable({
@@ -143,6 +160,51 @@ export class UploadService {
     }
 
     return Math.min(1_000 * 2 ** attempt, UploadService.MAX_RATE_LIMIT_WAIT_MS) + Math.floor(Math.random() * 250);
+  }
+
+  /**
+   * Reads embedded tags from an audio file.
+   *
+   * `music-metadata` is loaded with a dynamic import so it lands in its own
+   * lazily-fetched chunk: it never enters the initial bundle, and it is never
+   * evaluated during SSR because this method only runs from a browser file
+   * selection. The package's `default` export condition resolves to its
+   * browser-safe core build.
+   *
+   * Parsing failures are non-fatal — an untagged or unrecognised file simply
+   * yields no pre-fill values, and the artist types them manually.
+   *
+   * @param file - The audio file to inspect
+   * @returns Tags found in the file, or an empty object when none could be read
+   */
+  async readAudioMetadata(file: File): Promise<AudioFileMetadata> {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    try {
+      const { parseBlob } = await import('music-metadata');
+      const { common, format } = await parseBlob(file, { duration: true });
+
+      const artists = common.artists?.filter(Boolean).join(', ') || undefined;
+
+      return {
+        title: common.title || undefined,
+        album: common.album || undefined,
+        albumArtist: common.albumartist || undefined,
+        artists,
+        year: common.year || undefined,
+        trackNumber: common.track?.no ?? undefined,
+        genre: common.genre?.filter(Boolean).join(', ') || undefined,
+        durationSeconds:
+          format.duration && Number.isFinite(format.duration)
+            ? Math.round(format.duration)
+            : undefined,
+      };
+    } catch {
+      // Unsupported or corrupt tags are not an upload failure.
+      return {};
+    }
   }
 
   /**

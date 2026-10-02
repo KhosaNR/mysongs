@@ -1,5 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { parseBlob } from 'music-metadata';
 import { UploadService } from './upload.service';
+
+// The parser is loaded through a dynamic import; mock the module so the tests
+// never touch real audio parsing.
+vi.mock('music-metadata', () => ({
+  parseBlob: vi.fn(),
+}));
 
 describe('UploadService', () => {
   let service: UploadService;
@@ -78,6 +85,68 @@ describe('UploadService', () => {
       fire('loadedmetadata');
 
       await expect(promise).resolves.toBe(0);
+    });
+  });
+
+  describe('readAudioMetadata', () => {
+    const mockedParse = parseBlob as unknown as ReturnType<typeof vi.fn>;
+
+    function file(): File {
+      return new File(['audio'], 'track.mp3', { type: 'audio/mpeg' });
+    }
+
+    it('should map common tags into the metadata shape', async () => {
+      mockedParse.mockResolvedValueOnce({
+        common: {
+          title: 'Your Love',
+          album: 'Ku Langhe Mbilu',
+          albumartist: 'Leo Bee',
+          artists: ['Leo Bee', 'Hopey.B'],
+          year: 2020,
+          track: { no: 3 },
+          genre: ['Amapiano', 'Hip-Hop'],
+        },
+        format: { duration: 245.6 },
+      });
+
+      const result = await service.readAudioMetadata(file());
+
+      expect(result.title).toBe('Your Love');
+      expect(result.album).toBe('Ku Langhe Mbilu');
+      expect(result.albumArtist).toBe('Leo Bee');
+      expect(result.artists).toBe('Leo Bee, Hopey.B');
+      expect(result.year).toBe(2020);
+      expect(result.trackNumber).toBe(3);
+      expect(result.genre).toBe('Amapiano, Hip-Hop');
+      expect(result.durationSeconds).toBe(246);
+    });
+
+    it('should yield undefined fields for an untagged file', async () => {
+      mockedParse.mockResolvedValueOnce({ common: {}, format: {} });
+
+      const result = await service.readAudioMetadata(file());
+
+      expect(result.title).toBeUndefined();
+      expect(result.album).toBeUndefined();
+      expect(result.durationSeconds).toBeUndefined();
+    });
+
+    it('should return an empty object when parsing fails', async () => {
+      mockedParse.mockRejectedValueOnce(new Error('unsupported format'));
+
+      await expect(service.readAudioMetadata(file())).resolves.toEqual({});
+    });
+
+    it('should omit a non-finite duration', async () => {
+      mockedParse.mockResolvedValueOnce({
+        common: { title: 'X' },
+        format: { duration: Number.NaN },
+      });
+
+      const result = await service.readAudioMetadata(file());
+
+      expect(result.title).toBe('X');
+      expect(result.durationSeconds).toBeUndefined();
     });
   });
 

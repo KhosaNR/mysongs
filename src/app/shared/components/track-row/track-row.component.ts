@@ -8,6 +8,7 @@
 import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Song } from '../../models/song.interface';
+import { formatSongCredits } from '../../../core/utils/format-credits';
 
 @Component({
   selector: 'app-track-row',
@@ -652,14 +653,8 @@ export class TrackRowComponent {
    * producer credit exists so the artist line is not lost.
    */
   protected readonly credits = computed(() => {
-    const song = this.song();
-    const parts: string[] = [];
-    if (song.featuredArtists) parts.push(`feat. ${song.featuredArtists}`);
-    if (song.producers) parts.push(`Prod. ${song.producers}`);
-    return {
-      text: parts.length > 0 ? parts.join(' ') : (song.writtenBy ?? ''),
-      featured: parts.length > 0,
-    };
+    const derived = formatSongCredits(this.song());
+    return { text: derived.text, featured: derived.hasCredits };
   });
 
   /**

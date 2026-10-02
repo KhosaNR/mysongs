@@ -7,6 +7,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import type { DownloadInfo } from '../../models/purchase.interface';
 import { PurchaseDialogComponent, PurchaseDialogState } from '../purchase-dialog/purchase-dialog.component';
 import { Song } from '../../models/song.interface';
+import { formatSongCredits, type SongCredits } from '../../../core/utils/format-credits';
 
 /**
  * Represents the active tab in expanded state.
@@ -92,6 +93,9 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                   >{{ currentTrack()?.albumTitle || 'Album' }}</a>
                 }
               </div>
+              @if (currentCredits().text) {
+                <div class="audio-player__mini-credits">{{ currentCredits().text }}</div>
+              }
             </div>
 
             <!-- Auto-resume indicator -->
@@ -377,6 +381,9 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                     >{{ currentTrack()?.albumTitle || 'Album' }}</a>
                   }
                 </div>
+                @if (currentCredits().text) {
+                  <p class="audio-player__track-credits">{{ currentCredits().text }}</p>
+                }
               </div>
 
               <!-- Retry Indicator (expanded) -->
@@ -678,6 +685,11 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                       <div class="audio-player__queue-item-info">
                         <div class="audio-player__queue-item-title">{{ entry.title }}</div>
                         <div class="audio-player__queue-item-artist">{{ entry.artist }}</div>
+                        @if (creditsFor(entry).text) {
+                          <div class="audio-player__queue-item-credits">
+                            {{ creditsFor(entry).text }}
+                          </div>
+                        }
                       </div>
                       @if (entry.id === currentTrack()?.id) {
                         <svg class="audio-player__queue-item-indicator" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -867,6 +879,15 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
       min-width: 0;
       font-size: var(--text-xs);
       color: var(--text-secondary);
+    }
+
+    .audio-player__mini-credits {
+      min-width: 0;
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .audio-player__mini-artist,
@@ -1258,6 +1279,14 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
       color: var(--text-tertiary);
     }
 
+    /* Credits line — featured artist / producer, shared shape with track-row */
+    .audio-player__track-credits {
+      margin: var(--space-1) 0 0;
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+
     /* Retry Banner */
     .audio-player__retry-banner {
       display: flex;
@@ -1635,6 +1664,14 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
       text-overflow: ellipsis;
     }
 
+    .audio-player__queue-item-credits {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .audio-player__queue-item-indicator {
       width: 16px;
       height: 16px;
@@ -1937,6 +1974,24 @@ export class AudioPlayerComponent {
     const queue = this.audioPlayerService.queue();
     return idx >= 0 && idx < queue.length ? queue[idx] : null;
   });
+
+  /**
+   * Credits line for the currently playing track, rendered identically to the
+   * track row so the player and list surfaces cannot drift apart.
+   */
+  protected readonly currentCredits = computed<SongCredits>(() =>
+    formatSongCredits(this.currentTrack() ?? {}),
+  );
+
+  /**
+   * Credits line for a queue entry.
+   *
+   * @param track - Queue entry to derive credits for
+   * @returns The derived credits line
+   */
+  protected creditsFor(track: Track | null): SongCredits {
+    return track ? formatSongCredits(track) : { text: '', hasCredits: false };
+  }
 
   /**
    * Whether a track is selected for streaming.

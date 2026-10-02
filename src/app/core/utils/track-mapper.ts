@@ -25,6 +25,9 @@ export function songToTrack(song: Song, artistName: string, albumTitle?: string)
     duration: song.duration,
     lyrics: song.lyrics,
     youtubeVideoId: song.youtubeVideoId,
+    featuredArtists: song.featuredArtists,
+    producers: song.producers,
+    writtenBy: song.writtenBy,
     priceZAR: song.priceZAR,
     minimumPriceZAR: song.minimumPriceZAR,
   };

@@ -34,6 +34,9 @@ export interface Track {
   readonly duration?: number;
   readonly youtubeVideoId?: string;
   readonly lyrics?: string;
+  readonly featuredArtists?: string;
+  readonly producers?: string;
+  readonly writtenBy?: string;
   readonly priceZAR?: number;
   readonly minimumPriceZAR?: number;
 }

@@ -22,7 +22,21 @@ import { Song } from '../../models/song.interface';
 import { Album } from '../../models/album.interface';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
 import { sanitizeForFirestore } from '../../../core/utils/sanitize';
+import { formatDuration } from '../../../core/utils/format-duration';
 import { FieldErrorsComponent } from '../field-errors/field-errors.component';
+
+/**
+ * Firestore write payload for a song.
+ *
+ * `albumId` and `trackNumber` deliberately widen to `null` so converting an
+ * album track into a single clears the stale relationship. `null` is preserved
+ * by `sanitizeForFirestore`, whereas `undefined` would be stripped and leave the
+ * old value in place.
+ */
+type SongWritePayload = Omit<Partial<Song>, 'albumId' | 'trackNumber'> & {
+  albumId?: string | null;
+  trackNumber?: number | null;
+};
 
 /** Song with its Firestore document ID. */
 export interface SongWithId extends Song {
@@ -92,6 +106,10 @@ export class SongFormDialogComponent {
   readonly artworkPreview = signal<string | null>(this.data.song?.artworkUrl ?? null);
   private readonly artworkFile = signal<File | null>(null);
   protected readonly audioFile = signal<File | null>(null);
+  protected readonly isReadingMetadata = signal(false);
+
+  /** Platform duration formatter, shared so the format cannot drift. */
+  protected readonly formatDuration = formatDuration;
 
   readonly formData = signal({
     title: this.data.song?.title ?? '',
@@ -169,12 +187,27 @@ export class SongFormDialogComponent {
   }
 
   /**
-   * Handles audio file selection (optional replacement in edit mode).
+   * Handles audio file selection, deriving the track duration from the file so
+   * the artist never has to type it (optional replacement in edit mode).
+   *
+   * @param event - Native change event carrying the selected file
    */
-  onAudioSelected(event: Event): void {
+  async onAudioSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      this.audioFile.set(input.files[0]);
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    this.audioFile.set(file);
+    this.isReadingMetadata.set(true);
+    try {
+      const duration = await this.uploadService.readAudioDuration(file);
+      this.formData.update((data) => ({ ...data, duration }));
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not read audio duration');
+    } finally {
+      this.isReadingMetadata.set(false);
     }
   }
 
@@ -236,12 +269,12 @@ export class SongFormDialogComponent {
         throw new Error('Audio file is required for a new song.');
       }
 
-      const songData: Partial<Song> = {
+      const songData: SongWritePayload = {
         title: data.title.trim(),
         featuredArtists: data.featuredArtists.trim() || undefined,
         producers: data.producers.trim() || undefined,
-        albumId: data.songType === 'album' ? data.albumId : undefined,
-        trackNumber: data.songType === 'album' ? data.trackNumber : undefined,
+        albumId: data.songType === 'album' ? data.albumId : null,
+        trackNumber: data.songType === 'album' ? data.trackNumber : null,
         duration: data.duration || undefined,
         genre: data.genre.trim() || undefined,
         tags: data.tags

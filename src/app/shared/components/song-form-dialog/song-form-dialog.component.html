@@ -23,6 +23,11 @@
         @if (audioFile()) {
           <span class="file-name">{{ audioFile()?.name }}</span>
         }
+        @if (isReadingMetadata()) {
+          <p class="progress-text">Reading audio metadata...</p>
+        } @else if (audioFile() && formData().duration > 0) {
+          <p class="progress-text">Detected duration: {{ formatDuration(formData().duration) }}</p>
+        }
         @if (isUploadingAudio()) {
           <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
           <p class="progress-text">Uploading audio... {{ uploadProgress() }}%</p>
@@ -32,11 +37,13 @@
 
     <div class="form-section">
       <h4>Song Details</h4>
-      <mat-form-field appearance="outline" class="field-full">
-        <mat-label>Song Title *</mat-label>
-        <input matInput [formField]="songForm.title" />
-        <mat-error>{{ songForm.title().errors()[0]?.message }}</mat-error>
-      </mat-form-field>
+      <div class="form-field">
+        <mat-form-field appearance="outline" class="field-full">
+          <mat-label>Song Title *</mat-label>
+          <input matInput [formField]="songForm.title" />
+        </mat-form-field>
+        <app-field-errors [field]="songForm.title" />
+      </div>
 
       <div class="form-row">
         <mat-form-field appearance="outline">
@@ -80,21 +87,30 @@
 
       @if (formData().songType === 'album') {
         <div class="form-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Track Number</mat-label>
-            <input matInput type="number" [formField]="songForm.trackNumber" />
-          </mat-form-field>
+          <div class="form-field">
+            <mat-form-field appearance="outline">
+              <mat-label>Track Number</mat-label>
+              <input matInput type="number" [formField]="songForm.trackNumber" />
+            </mat-form-field>
+            <app-field-errors [field]="songForm.trackNumber" />
+          </div>
+        </div>
+      }
+
+      <div class="form-row">
+        <div class="form-field">
           <mat-form-field appearance="outline">
             <mat-label>Duration (seconds)</mat-label>
             <input matInput type="number" [formField]="songForm.duration" />
+            @if (isReadingMetadata()) {
+              <mat-hint>Reading audio metadata...</mat-hint>
+            } @else if (formData().duration > 0) {
+              <mat-hint>Detected from file: {{ formatDuration(formData().duration) }}</mat-hint>
+            }
           </mat-form-field>
+          <app-field-errors [field]="songForm.duration" />
         </div>
-      } @else {
-        <mat-form-field appearance="outline" class="field-full">
-          <mat-label>Duration (seconds)</mat-label>
-          <input matInput type="number" [formField]="songForm.duration" />
-        </mat-form-field>
-      }
+      </div>
 
       <div class="form-row">
         <mat-form-field appearance="outline">
@@ -126,14 +142,16 @@
           <mat-label>Standard Price (ZAR)</mat-label>
           <input matInput type="number" step="0.01" [formField]="songForm.priceZAR" />
           <mat-hint>The default price buyers see at checkout. 0 = not for sale.</mat-hint>
-          <mat-error>{{ songForm.priceZAR().errors()[0]?.message }}</mat-error>
         </mat-form-field>
+        <app-field-errors [field]="songForm.priceZAR" />
+      </div>
+      <div class="form-field">
         <mat-form-field appearance="outline">
           <mat-label>Minimum Price (ZAR)</mat-label>
           <input matInput type="number" step="0.01" [formField]="songForm.minimumPriceZAR" />
           <mat-hint>Lowest amount a buyer may pay. Leave 0 to use the standard price as the minimum.</mat-hint>
-          <mat-error>{{ songForm.minimumPriceZAR().errors()[0]?.message }}</mat-error>
         </mat-form-field>
+        <app-field-errors [field]="songForm.minimumPriceZAR" />
       </div>
     </div>
 

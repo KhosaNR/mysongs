@@ -168,6 +168,43 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
               </svg>
             </button>
 
+            <!-- Shuffle Toggle -->
+            <button
+              type="button"
+              class="audio-player__mini-nav-btn audio-player__mode-btn"
+              [class.audio-player__mode-btn--active]="isShuffled()"
+              (click)="toggleShuffle()"
+              [attr.aria-pressed]="isShuffled()"
+              [attr.aria-label]="isShuffled() ? 'Disable shuffle' : 'Enable shuffle'"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="16 3 21 3 21 8"/>
+                <line x1="4" y1="20" x2="21" y2="3"/>
+                <polyline points="21 16 21 21 16 21"/>
+                <line x1="15" y1="15" x2="21" y2="21"/>
+                <line x1="4" y1="4" x2="9" y2="9"/>
+              </svg>
+            </button>
+
+            <!-- Repeat Toggle -->
+            <button
+              type="button"
+              class="audio-player__mini-nav-btn audio-player__mode-btn audio-player__mode-btn--repeat"
+              [class.audio-player__mode-btn--active]="repeatMode() !== 'off'"
+              (click)="cycleRepeatMode()"
+              [attr.aria-label]="repeatLabel()"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="17 1 21 5 17 9"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <polyline points="7 23 3 19 7 15"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+              @if (repeatMode() === 'one') {
+                <span class="audio-player__mode-badge" aria-hidden="true">1</span>
+              }
+            </button>
+
             <!-- Expand Button -->
             <button
               type="button"
@@ -445,6 +482,43 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                     <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
                   </svg>
                 </button>
+
+                <!-- Shuffle Toggle -->
+                <button
+                  type="button"
+                  class="audio-player__control-btn audio-player__mode-btn"
+                  [class.audio-player__mode-btn--active]="isShuffled()"
+                  (click)="toggleShuffle()"
+                  [attr.aria-pressed]="isShuffled()"
+                  [attr.aria-label]="isShuffled() ? 'Disable shuffle' : 'Enable shuffle'"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="16 3 21 3 21 8"/>
+                    <line x1="4" y1="20" x2="21" y2="3"/>
+                    <polyline points="21 16 21 21 16 21"/>
+                    <line x1="15" y1="15" x2="21" y2="21"/>
+                    <line x1="4" y1="4" x2="9" y2="9"/>
+                  </svg>
+                </button>
+
+                <!-- Repeat Toggle -->
+                <button
+                  type="button"
+                  class="audio-player__control-btn audio-player__mode-btn audio-player__mode-btn--repeat"
+                  [class.audio-player__mode-btn--active]="repeatMode() !== 'off'"
+                  (click)="cycleRepeatMode()"
+                  [attr.aria-label]="repeatLabel()"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="17 1 21 5 17 9"/>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    <polyline points="7 23 3 19 7 15"/>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                  </svg>
+                  @if (repeatMode() === 'one') {
+                    <span class="audio-player__mode-badge" aria-hidden="true">1</span>
+                  }
+                </button>
               </div>
 
               <!-- Keyboard shortcut hint -->
@@ -577,7 +651,7 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
             role="tabpanel"
           >
             <div class="audio-player__playlist">
-              @if (queue().length === 0) {
+              @if (playbackQueue().length === 0) {
                 <div class="audio-player__empty-state">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <line x1="8" y1="6" x2="21" y2="6"/>
@@ -591,21 +665,21 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
                 </div>
               } @else {
                 <div class="audio-player__queue-list" role="list">
-                  @for (track of queue(); track track.id; let i = $index) {
+                  @for (entry of playbackQueue(); track entry.id) {
                     <div 
                       class="audio-player__queue-item"
-                      [class.audio-player__queue-item--active]="i === currentIndex()"
-                      (click)="playTrackAtIndex(i)"
+                      [class.audio-player__queue-item--active]="entry.id === currentTrack()?.id"
+                      (click)="playQueueTrack(entry)"
                       role="listitem"
                       tabindex="0"
-                      (keydown.enter)="playTrackAtIndex(i)"
-                      (keydown.space)="playTrackAtIndex(i)"
+                      (keydown.enter)="playQueueTrack(entry)"
+                      (keydown.space)="playQueueTrack(entry)"
                     >
                       <div class="audio-player__queue-item-info">
-                        <div class="audio-player__queue-item-title">{{ track.title }}</div>
-                        <div class="audio-player__queue-item-artist">{{ track.artist }}</div>
+                        <div class="audio-player__queue-item-title">{{ entry.title }}</div>
+                        <div class="audio-player__queue-item-artist">{{ entry.artist }}</div>
                       </div>
-                      @if (i === currentIndex()) {
+                      @if (entry.id === currentTrack()?.id) {
                         <svg class="audio-player__queue-item-indicator" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                           <rect x="3" y="2" width="3" height="12" rx="1"/>
                           <rect x="10" y="2" width="3" height="12" rx="1"/>
@@ -1793,6 +1867,36 @@ type PlayerTab = 'now-playing' | 'playlist' | 'lyrics';
         display: none;
       }
     }
+
+    /* ========================================================================
+       PLAYBACK MODE TOGGLES (shuffle / repeat)
+       Declared last so the active-state colour wins over the shared
+       .audio-player__mini-nav-btn / .audio-player__control-btn colour rules.
+       ======================================================================== */
+
+    .audio-player__mode-btn {
+      position: relative;
+      color: var(--text-tertiary);
+    }
+
+    .audio-player__mode-btn--active {
+      color: var(--accent-primary);
+    }
+
+    .audio-player__mode-btn--repeat {
+      padding-right: 2px;
+    }
+
+    /* "1" marker distinguishing repeat-one from repeat-all */
+    .audio-player__mode-badge {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      font-size: 8px;
+      font-weight: var(--weight-bold);
+      line-height: 1;
+      color: var(--accent-primary);
+    }
   `],
 })
 export class AudioPlayerComponent {
@@ -1843,6 +1947,27 @@ export class AudioPlayerComponent {
    * Playback queue.
    */
   readonly queue = this.audioPlayerService.queue;
+
+  /** Queue entries in audible playback order (shuffled when active). */
+  readonly playbackQueue = this.audioPlayerService.playbackQueue;
+
+  /** Current repeat mode: off, all, or one. */
+  readonly repeatMode = this.audioPlayerService.repeatMode;
+
+  /** Whether shuffled navigation is active. */
+  readonly isShuffled = this.audioPlayerService.isShuffled;
+
+  /** Accessible description of the current repeat state. */
+  readonly repeatLabel = computed(() => {
+    switch (this.repeatMode()) {
+      case 'all':
+        return 'Repeat all tracks';
+      case 'one':
+        return 'Repeat one track';
+      default:
+        return 'Repeat off';
+    }
+  });
 
   /**
    * Current queue index.
@@ -1916,17 +2041,16 @@ export class AudioPlayerComponent {
    * Whether previous track is available.
    */
   readonly canPlayPrevious = computed(() => {
-    return this.audioPlayerService.currentIndex() > 0 || this.currentTime() > this.restartThresholdSeconds;
+    return (
+      this.audioPlayerService.canNavigate(-1) ||
+      this.currentTime() > this.restartThresholdSeconds
+    );
   });
 
   /**
    * Whether next track is available.
    */
-  readonly canPlayNext = computed(() => {
-    const idx = this.audioPlayerService.currentIndex();
-    const queue = this.audioPlayerService.queue();
-    return idx >= 0 && idx < queue.length - 1;
-  });
+  readonly canPlayNext = computed(() => this.audioPlayerService.canNavigate(1));
 
   // ==========================================================================
   // KEYBOARD SHORTCUTS
@@ -2167,6 +2291,34 @@ export class AudioPlayerComponent {
       this.audioPlayerService.currentIndex.set(index);
       this.audioPlayerService.playTrack(queue[index]);
     }
+  }
+
+  /**
+   * Plays a specific queue entry by identity, used by the queue list which
+   * renders in playback (possibly shuffled) order.
+   *
+   * @param track - Queue entry to play
+   */
+  playQueueTrack(track: Track): void {
+    const index = this.audioPlayerService.queue().findIndex((entry) => entry.id === track.id);
+    if (index >= 0) {
+      this.audioPlayerService.currentIndex.set(index);
+      this.audioPlayerService.playTrack(track);
+    }
+  }
+
+  /**
+   * Advances the repeat mode through off → all → one.
+   */
+  cycleRepeatMode(): void {
+    this.audioPlayerService.cycleRepeatMode();
+  }
+
+  /**
+   * Toggles shuffled queue navigation.
+   */
+  toggleShuffle(): void {
+    this.audioPlayerService.toggleShuffle();
   }
 
   /**

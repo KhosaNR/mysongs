@@ -142,4 +142,128 @@ describe('AudioPlayerService', () => {
       expect(service.state().currentTime).toBe(0);
     });
   });
+
+  describe('playback modes', () => {
+    const trackC: Track = {
+      id: 'track_c',
+      title: 'Track C',
+      artist: 'Test Artist',
+      artistId: 'artist_01',
+      streamUrl: 'https://example.com/track_c.mp3',
+    };
+
+    function seedQueue(): void {
+      service.queue.set([trackA, trackB, trackC]);
+    }
+
+    it('should cycle the repeat mode through off, all, one', () => {
+      service.repeatMode.set('off');
+
+      service.cycleRepeatMode();
+      expect(service.repeatMode()).toBe('all');
+
+      service.cycleRepeatMode();
+      expect(service.repeatMode()).toBe('one');
+
+      service.cycleRepeatMode();
+      expect(service.repeatMode()).toBe('off');
+    });
+
+    it('should report no next track at the queue end when repeat is off', () => {
+      seedQueue();
+      service.currentIndex.set(2);
+      service.repeatMode.set('off');
+
+      expect(service.canNavigate(1)).toBe(false);
+    });
+
+    it('should wrap forward at the queue end when repeat is all', () => {
+      seedQueue();
+      service.currentIndex.set(2);
+      service.repeatMode.set('all');
+
+      expect(service.canNavigate(1)).toBe(true);
+    });
+
+    it('should wrap backward at the queue start when repeat is all', () => {
+      seedQueue();
+      service.currentIndex.set(0);
+      service.repeatMode.set('all');
+
+      expect(service.canNavigate(-1)).toBe(true);
+    });
+
+    it('should advance to the next track when next is clicked', async () => {
+      seedQueue();
+      service.currentIndex.set(0);
+      service.repeatMode.set('off');
+
+      const result = await service.playNext();
+
+      expect(result.isSuccess()).toBe(true);
+      expect(service.currentIndex()).toBe(1);
+    });
+
+    it('should leave the queue signal untouched while shuffling', () => {
+      seedQueue();
+      service.currentIndex.set(1);
+      service.toggleShuffle();
+
+      expect(service.isShuffled()).toBe(true);
+      expect(service.queue().map((t) => t.id)).toEqual(['track_a', 'track_b', 'track_c']);
+      expect(service.playbackQueue().map((t) => t.id).sort()).toEqual([
+        'track_a',
+        'track_b',
+        'track_c',
+      ]);
+    });
+
+    it('should keep the active track first in the shuffled playback order', () => {
+      seedQueue();
+      service.currentIndex.set(2);
+      service.toggleShuffle();
+
+      expect(service.playbackQueue()[0].id).toBe('track_c');
+    });
+
+    it('should navigate the full shuffled order before repeating', async () => {
+      seedQueue();
+      service.currentIndex.set(0);
+      service.toggleShuffle();
+      service.repeatMode.set('off');
+
+      const visited = new Set<string>([service.playbackQueue()[0].id]);
+      for (let step = 0; step < 2; step++) {
+        await service.playNext();
+        visited.add(service.currentIndex() >= 0 ? service.queue()[service.currentIndex()].id : '');
+      }
+
+      expect(visited.size).toBe(3);
+    });
+
+    it('should restore sequential playback order when shuffle is disabled', () => {
+      seedQueue();
+      service.toggleShuffle();
+      service.toggleShuffle();
+
+      expect(service.isShuffled()).toBe(false);
+      expect(service.playbackQueue().map((t) => t.id)).toEqual([
+        'track_a',
+        'track_b',
+        'track_c',
+      ]);
+    });
+
+    it('should restart the current track when repeat is one and it ends', async () => {
+      seedQueue();
+      service.currentIndex.set(1);
+      service.repeatMode.set('one');
+
+      const el = service as unknown as { audioElement: HTMLAudioElement | null };
+      el.audioElement?.dispatchEvent(new Event('ended'));
+      await Promise.resolve();
+
+      expect(service.currentIndex()).toBe(1);
+    });
+  });
 });

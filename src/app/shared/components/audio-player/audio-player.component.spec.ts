@@ -315,10 +315,36 @@ describe('AudioPlayerComponent', () => {
     });
 
     it('should determine if previous track is available', () => {
+      service.queue.set([
+        { id: '1', title: 'Track 1', artist: 'Artist', artistId: 'a1', streamUrl: 'url1' },
+        { id: '2', title: 'Track 2', artist: 'Artist', artistId: 'a1', streamUrl: 'url2' },
+        { id: '3', title: 'Track 3', artist: 'Artist', artistId: 'a1', streamUrl: 'url3' },
+      ]);
+
       service.currentIndex.set(0);
       expect(component.canPlayPrevious()).toBe(false);
 
       service.currentIndex.set(2);
+      expect(component.canPlayPrevious()).toBe(true);
+    });
+
+    it('should report no previous track when the queue is empty', () => {
+      service.queue.set([]);
+      service.currentIndex.set(0);
+
+      expect(component.canPlayPrevious()).toBe(false);
+    });
+
+    it('should wrap to the last track when repeat is set to all', () => {
+      service.queue.set([
+        { id: '1', title: 'Track 1', artist: 'Artist', artistId: 'a1', streamUrl: 'url1' },
+        { id: '2', title: 'Track 2', artist: 'Artist', artistId: 'a1', streamUrl: 'url2' },
+      ]);
+      service.currentIndex.set(0);
+
+      expect(component.canPlayPrevious()).toBe(false);
+
+      service.repeatMode.set('all');
       expect(component.canPlayPrevious()).toBe(true);
     });
 

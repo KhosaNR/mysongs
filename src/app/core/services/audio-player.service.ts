@@ -39,6 +39,40 @@ export interface Track {
 }
 
 /**
+ * Repeat behaviour: stop at the queue end, loop the whole queue, or loop the
+ * current track.
+ */
+export type RepeatMode = 'off' | 'all' | 'one';
+
+const REPEAT_STORAGE_KEY = 'mysongs.player.repeatMode';
+const SHUFFLE_STORAGE_KEY = 'mysongs.player.shuffled';
+
+/** Reads the persisted repeat mode, defaulting to `off`. SSR-safe. */
+function readStoredRepeatMode(): RepeatMode {
+  if (typeof localStorage === 'undefined') {
+    return 'off';
+  }
+  const stored = localStorage.getItem(REPEAT_STORAGE_KEY);
+  return stored === 'all' || stored === 'one' ? stored : 'off';
+}
+
+/** Persists the repeat mode. SSR-safe. */
+function persistRepeatMode(mode: RepeatMode): void {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  localStorage.setItem(REPEAT_STORAGE_KEY, mode);
+}
+
+/** Persists the shuffle preference. SSR-safe. */
+function persistShuffle(enabled: boolean): void {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  localStorage.setItem(SHUFFLE_STORAGE_KEY, enabled ? '1' : '0');
+}
+
+/**
  * Service managing global persistent audio playback across route navigation.
  * 
  * Provides a route-safe audio player that survives page transitions.
@@ -109,6 +143,45 @@ export class AudioPlayerService implements OnDestroy {
   readonly currentIndex = signal<number>(-1);
 
   /**
+   * Repeat mode, cycling off → all → one. Persisted locally as a listener
+   * device preference rather than Firestore user data.
+   */
+  readonly repeatMode = signal<RepeatMode>(readStoredRepeatMode());
+
+  /** Whether queue navigation follows a shuffled order. */
+  readonly isShuffled = signal<boolean>(false);
+
+  /**
+   * Shuffled playback order expressed as original queue indices.
+   *
+   * `null` when shuffle is inactive, in which case navigation is plain index
+   * ± 1. The queue signal itself is never reshuffled, so metadata lookups by
+   * `queue[currentIndex]` keep working unchanged.
+   */
+  private readonly shuffleOrder = signal<number[] | null>(null);
+
+  /**
+   * Queue entries in audible playback order.
+   *
+   * Consumers that display the queue must use this so the shown order always
+   * matches what the listener will actually hear.
+   */
+  readonly playbackQueue = computed<Track[]>(() => {
+    const queue = this.queue();
+    const order = this.shuffleOrder();
+
+    if (!order) {
+      return queue;
+    }
+
+    const ordered = order
+      .map((index) => queue[index])
+      .filter((track): track is Track => track !== undefined);
+
+    return ordered.length === queue.length ? ordered : queue;
+  });
+
+  /**
    * Whether a track is currently selected for streaming.
    *
    * True when a stream URL is loaded or a queue entry is selected.
@@ -156,7 +229,7 @@ export class AudioPlayerService implements OnDestroy {
 
     // Track ended
     this.audioElement.addEventListener('ended', () => {
-      this.playNext();
+      void this.handleTrackEnded();
     });
 
     // Loading state
@@ -398,6 +471,9 @@ export class AudioPlayerService implements OnDestroy {
     const safeStart = Math.min(Math.max(startIndex, 0), tracks.length - 1);
     this.queue.set([...tracks]);
     this.currentIndex.set(safeStart);
+    if (this.isShuffled()) {
+      this.shuffleOrder.set(this.buildShuffleOrder(tracks.length));
+    }
 
     return this.playTrack(tracks[safeStart]);
   }
@@ -603,39 +679,167 @@ export class AudioPlayerService implements OnDestroy {
   }
 
   /**
+   * Advances the repeat mode through off → all → one.
+   */
+  cycleRepeatMode(): void {
+    const cycle: readonly RepeatMode[] = ['off', 'all', 'one'];
+    const next = cycle[(cycle.indexOf(this.repeatMode()) + 1) % cycle.length];
+    this.repeatMode.set(next);
+    persistRepeatMode(next);
+  }
+
+  /**
+   * Toggles shuffled queue navigation.
+   *
+   * Enabling builds a fresh Fisher-Yates order anchored on the currently
+   * playing track so playback continues uninterrupted; disabling restores
+   * sequential navigation.
+   */
+  toggleShuffle(): void {
+    const next = !this.isShuffled();
+    this.isShuffled.set(next);
+    this.shuffleOrder.set(next ? this.buildShuffleOrder(this.queue().length) : null);
+    persistShuffle(next);
+  }
+
+  /**
+   * Builds a shuffled order of queue indices, keeping the active track first.
+   *
+   * @param length - Queue length to permute
+   * @returns Original queue indices in playback order
+   */
+  private buildShuffleOrder(length: number): number[] {
+    const active = this.currentIndex();
+    const remaining: number[] = [];
+
+    for (let i = 0; i < length; i++) {
+      if (i !== active) {
+        remaining.push(i);
+      }
+    }
+
+    for (let i = remaining.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+    }
+
+    return active >= 0 && active < length ? [active, ...remaining] : remaining;
+  }
+
+  /**
+   * Resolves the queue index to navigate to, honouring shuffle order and
+   * wrapping at the boundaries when `repeat: 'all'` is active.
+   *
+   * @param currentIdx - Index currently playing
+   * @param direction - 1 to advance, -1 to go back
+   * @returns The target queue index, or `null` when the queue edge is reached
+   */
+  private resolveNeighbour(currentIdx: number, direction: 1 | -1): number | null {
+    const queue = this.queue();
+    const last = queue.length - 1;
+    if (last < 0) {
+      return null;
+    }
+
+    const wraps = this.repeatMode() === 'all';
+    const order = this.shuffleOrder();
+
+    if (order && order.length === queue.length) {
+      const position = order.indexOf(currentIdx);
+      if (position !== -1) {
+        const target = position + direction;
+        if (target >= 0 && target < order.length) {
+          return order[target];
+        }
+        return wraps ? (direction === 1 ? order[0] : order[order.length - 1]) : null;
+      }
+    }
+
+    const target = currentIdx + direction;
+    if (target >= 0 && target <= last) {
+      return target;
+    }
+    return wraps ? (direction === 1 ? 0 : last) : null;
+  }
+
+  /**
+   * Handles a track reaching its end.
+   *
+   * `repeat: 'one'` restarts the same track; otherwise playback advances via
+   * {@link playNext}, which applies shuffle order and `repeat: 'all'` wrapping.
+   */
+  private async handleTrackEnded(): Promise<void> {
+    if (this.repeatMode() === 'one') {
+      const element = this.audioElement;
+      if (!element) {
+        return;
+      }
+      try {
+        element.currentTime = 0;
+        await element.play();
+      } catch (error) {
+        this.errorHandler.executeSync(
+          () => {
+            throw error;
+          },
+          'handleTrackEnded',
+        );
+      }
+      return;
+    }
+
+    await this.playNext();
+  }
+
+  /**
+   * Whether a neighbour track exists in the given direction.
+   *
+   * Reads the queue and playback-mode signals, so callers may invoke it from
+   * inside a `computed()` to stay reactive.
+   *
+   * @param direction - 1 to check forward, -1 to check backward
+   * @returns Whether navigation is possible
+   */
+  canNavigate(direction: 1 | -1): boolean {
+    return this.resolveNeighbour(this.currentIndex(), direction) !== null;
+  }
+
+  /**
    * Plays the next track in the queue.
-   * 
+   *
    * @returns A Result indicating success or failure
    */
   async playNext(): Promise<Result<void>> {
-    const currentQueue = this.queue();
-    const currentIdx = this.currentIndex();
+    if (this.queue().length === 0) {
+      return Result.failure('Queue is empty.');
+    }
 
-    if (currentQueue.length === 0 || currentIdx >= currentQueue.length - 1) {
+    const nextIndex = this.resolveNeighbour(this.currentIndex(), 1);
+    if (nextIndex === null) {
       return Result.failure('No next track in queue.');
     }
 
-    const nextIndex = currentIdx + 1;
     this.currentIndex.set(nextIndex);
-    return this.playTrack(currentQueue[nextIndex]);
+    return this.playTrack(this.queue()[nextIndex]);
   }
 
   /**
    * Plays the previous track in the queue.
-   * 
+   *
    * @returns A Result indicating success or failure
    */
   async playPrevious(): Promise<Result<void>> {
-    const currentQueue = this.queue();
-    const currentIdx = this.currentIndex();
+    if (this.queue().length === 0) {
+      return Result.failure('Queue is empty.');
+    }
 
-    if (currentQueue.length === 0 || currentIdx <= 0) {
+    const prevIndex = this.resolveNeighbour(this.currentIndex(), -1);
+    if (prevIndex === null) {
       return Result.failure('No previous track in queue.');
     }
 
-    const prevIndex = currentIdx - 1;
     this.currentIndex.set(prevIndex);
-    return this.playTrack(currentQueue[prevIndex]);
+    return this.playTrack(this.queue()[prevIndex]);
   }
 
   /**

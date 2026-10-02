@@ -82,6 +82,10 @@
               <span class="artist-detail__count-badge">{{ albums().length }} {{ albums().length === 1 ? 'album' : 'albums' }}</span>
             }
             @if (canEdit()) {
+              <button type="button" class="btn btn--secondary btn--sm" (click)="openBulkUpload()">
+                <span class="material-icons" aria-hidden="true">library_music</span>
+                Bulk Upload Album
+              </button>
               <button type="button" class="btn btn--primary btn--sm" (click)="openCreateAlbum()">
                 <span class="material-icons" aria-hidden="true">add</span>
                 Add Album

@@ -1,0 +1,141 @@
+<h2 mat-dialog-title>Bulk Upload Album</h2>
+
+<mat-dialog-content>
+  @if (error()) {
+    <div class="error-banner">
+      <p>{{ error() }}</p>
+      <button type="button" class="error-banner__dismiss" (click)="error.set(null)" aria-label="Dismiss">
+        &times;
+      </button>
+    </div>
+  }
+
+  <p class="bulk-upload__intro">
+    Select every track in the album at once. Titles, artists, genres and durations are read
+    from the files themselves; you can correct anything before uploading.
+  </p>
+
+  <div class="bulk-upload__picker">
+    <input
+      type="file"
+      id="bulkAudioFiles"
+      accept="audio/*"
+      multiple
+      (change)="onFilesSelected($event)"
+    />
+    <label for="bulkAudioFiles" class="btn btn--primary">Choose Audio Files</label>
+    <span class="field-hint">MP3 or any browser-readable audio. Multiple files supported.</span>
+  </div>
+
+  @if (isReading()) {
+    <p class="bulk-upload__status">Reading metadata from the selected files...</p>
+  }
+
+  @if (hasTracks()) {
+    <div class="form-field">
+      <label for="bulkAlbumTitle">Album Title *</label>
+      <input
+        class="form-field__control"
+        type="text"
+        id="bulkAlbumTitle"
+        [value]="albumTitle()"
+        (input)="albumTitle.set($any($event.target).value)"
+      />
+      <p class="field-hint">
+        @if (albums().length > 0) {
+          An existing album with this exact name is reused; otherwise a new album is created.
+        } @else {
+          A new album will be created for these tracks.
+        }
+      </p>
+    </div>
+
+    <div class="bulk-upload__summary">
+      <span>{{ tracks().length }} file{{ tracks().length === 1 ? '' : 's' }} selected</span>
+      @if (completedCount() > 0) {
+        <span> &middot; {{ completedCount() }} uploaded</span>
+      }
+      @if (failedCount() > 0) {
+        <span class="bulk-upload__failed"> &middot; {{ failedCount() }} failed</span>
+      }
+    </div>
+
+    <div class="bulk-upload__list">
+      @for (track of tracks(); track track.file; let i = $index) {
+        <div class="bulk-upload__row" [attr.data-status]="track.status">
+          <div class="bulk-upload__row-main">
+            <div class="form-field">
+              <label [for]="'bulkTitle' + i">Title</label>
+              <input
+                class="form-field__control"
+                type="text"
+                [id]="'bulkTitle' + i"
+                [value]="track.title"
+                [disabled]="isUploading() || track.status === 'done'"
+                (input)="updateTrack(i, 'title', $any($event.target).value)"
+              />
+            </div>
+            <div class="bulk-upload__row-meta">
+              <span class="bulk-upload__filename">{{ track.file.name }}</span>
+              <span>{{ formatDuration(track.durationSeconds) }}</span>
+            </div>
+          </div>
+
+          <span class="bulk-upload__status-chip" [attr.data-status]="track.status">
+            {{ statusLabel(track) }}
+          </span>
+
+          @if (track.status === 'failed' && track.error) {
+            <p class="bulk-upload__row-error">{{ track.error }}</p>
+          }
+
+          @if (!isUploading() && track.status !== 'done') {
+            <button
+              type="button"
+              class="btn btn--secondary btn--sm"
+              (click)="removeTrack(i)"
+              [attr.aria-label]="'Remove ' + track.file.name"
+              matTooltip="Remove from this batch"
+            >
+              Remove
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    @if (isUploading()) {
+      @if (isRateLimited()) {
+        <p class="bulk-upload__status bulk-upload__status--waiting">
+          Rate limit reached - pausing briefly, then resuming automatically.
+        </p>
+      }
+      <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
+      <p class="progress-text">Uploading {{ uploadProgress() }}%</p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="close()" [disabled]="isUploading()">
+    Cancel
+  </button>
+  @if (failedCount() > 0 && !isUploading()) {
+    <button mat-stroked-button type="button" (click)="retryFailed()">
+      Retry {{ failedCount() }} Failed
+    </button>
+  }
+  <button
+    mat-flat-button
+    type="button"
+    (click)="submit()"
+    [disabled]="!canSubmit()"
+  >
+    @if (isUploading()) {
+      <mat-spinner diameter="16"></mat-spinner>
+      Uploading...
+    } @else {
+      Upload {{ tracks().length || '' }} Track{{ tracks().length === 1 ? '' : 's' }}
+    }
+  </button>
+</mat-dialog-actions>

@@ -23,6 +23,11 @@ import { AddToPlaylistDialogComponent } from '../playlists/add-to-playlist-dialo
 import { AlbumFormDialogComponent, AlbumFormDialogData, AlbumFormDialogResult } from '../artist/album-management/album-form-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
+  BulkUploadDialogComponent,
+  BulkUploadResult,
+  type BulkAlbumOption,
+} from './bulk-upload-dialog.component';
+import {
   CollectionFormDialogComponent,
   CollectionFormDialogData,
   CollectionFormDialogResult,
@@ -484,6 +489,35 @@ export class ArtistDetailComponent {
       maxWidth: '95vw',
       data: { song: songWithId, albums: this.albums() },
     });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.saved) {
+        void this.reloadCatalog();
+      }
+    });
+  }
+
+  /**
+   * Opens the bulk album upload dialog, pre-seeded with the artist's existing
+   * albums so a batch can be filed under one of them.
+   */
+  openBulkUpload(): void {
+    if (!this.canEdit()) return;
+
+    const options: BulkAlbumOption[] = this.albums().map((album) => ({
+      id: album.id,
+      title: album.title,
+    }));
+
+    const dialogRef = this.dialog.open<
+      BulkUploadDialogComponent,
+      { albums: BulkAlbumOption[] },
+      BulkUploadResult
+    >(BulkUploadDialogComponent, {
+      width: '760px',
+      maxWidth: '95vw',
+      data: { albums: options },
+    });
+
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.saved) {
         void this.reloadCatalog();

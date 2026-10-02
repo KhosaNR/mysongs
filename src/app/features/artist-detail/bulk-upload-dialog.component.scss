@@ -1,0 +1,104 @@
+.bulk-upload__intro {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.bulk-upload__picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.bulk-upload__status {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.bulk-upload__status--waiting {
+  color: var(--text-primary, #d4d4d4);
+}
+
+.bulk-upload__summary {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.bulk-upload__failed {
+  color: var(--text-error, #e63946);
+}
+
+.bulk-upload__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.bulk-upload__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+.bulk-upload__row[data-status='done'] {
+  border-color: var(--accent-primary);
+}
+
+.bulk-upload__row[data-status='failed'] {
+  border-color: var(--text-error, #e63946);
+}
+
+.bulk-upload__row-main {
+  min-width: 0;
+}
+
+.bulk-upload__row-meta {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.bulk-upload__filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulk-upload__row-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-error, #e63946);
+}
+
+.bulk-upload__status-chip {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.06));
+  white-space: nowrap;
+}
+
+.bulk-upload__status-chip[data-status='done'] {
+  color: var(--accent-primary);
+}
+
+.bulk-upload__status-chip[data-status='failed'] {
+  color: var(--text-error, #e63946);
+}
+
+.bulk-upload__status-chip[data-status='uploading'] {
+  color: var(--text-primary, #d4d4d4);
+}

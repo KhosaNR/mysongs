@@ -654,10 +654,10 @@ export class TrackRowComponent {
   });
 
   /**
-   * Combined credits line for the row's second line: 'feat. … | Prod. …'.
-   * Each segment renders only when the corresponding field is present.
-   * Falls back to the songwriters when neither a featured-artist nor a
-   * producer credit exists so the artist line is not lost.
+   * Combined credits line for the row's second line.
+   *
+   * Delegates to the shared platform helper so this row, the player queue and
+   * the Now Playing tab always render the identical shape.
    */
   protected readonly credits = computed(() => {
     const derived = formatSongCredits(this.song());

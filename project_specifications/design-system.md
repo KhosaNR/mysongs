@@ -112,6 +112,8 @@ The page background must respond to the currently playing media in this priority
 * Use semantic color names (e.g., `--bg-primary`, `--text-primary`) not literal values
 * Test all components in both dark and light modes
 * **Empty states use one standard height platform-wide** — `app-empty-state` has no size variants; every "No X found" message renders with a 56×56px icon and `space-6`/`space-4` padding on every screen
+* **Icon-only and media controls carry a tooltip.** Use Angular Material `MatTooltipModule` (`matTooltip`) with a short, verb-led label. Every tooltip is paired with an equivalent `aria-label` so a control is never tooltip-dependent for assistive tech. Tooltip text uses words only — **no emoji** (see the platform-wide icon policy in `system-architecture.md`). Hover-only affordances are insufficient: keyboard-activatable controls (`tabindex="0"` + keydown handlers) follow the same rule.
+* **Durations render as `HH:MM:SS`, with the hour field omitted below one hour** (`4:05`, `1:01:01`). One shared formatter/pipe serves every surface — the player seek bar, the queue, track rows, song detail, album headers, and the artist/admin tables. Per-component `formatDuration`/`formatTime` copies are removed so the format cannot drift.
 
 ### Responsive Considerations
 * Theme must work across all breakpoints (mobile, tablet, desktop)

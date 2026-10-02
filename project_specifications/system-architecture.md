@@ -63,9 +63,22 @@ src/app/
 * Conditional validation (e.g. `albumId` required when `songType === 'album'`, audio file required in create mode) uses `validate(path, ctx => …)` with `ctx.valueOf(otherPath)` or `required(path, { when: … })`.
 * Cross-field checks (e.g. password match) use `validate(path, ctx => …)` returning `{ kind, message }` **without** a `fieldTree` property (the error belongs to the field the validator is attached to).
 * Reopening modal forms (`openCreateForm`/`openEditForm`/`closeForm`) calls `form().reset()` to clear touched/dirty/error state from the previous session.
+* A control that carries a validator **MUST be rendered whenever that validator can fire**. Conditionally hiding a control (e.g. an album-only field) while its rule still applies is forbidden — the error is generated but unreachable, so the submit silently bails. Where a field is conditionally rendered, its rule is made conditional to match, or the field is always rendered and the parent handles its visibility.
+* Every validated control renders its error through the shared `<app-field-errors>` component — never a bespoke `<mat-error>` interpolation, which lacks the mandated `aria-live` region and platform styling.
 
 ### 4. Telemetry Logging Standards
 * Implement structured TS Doc XML comment structures on all core architecture files to document parameters, outcomes, and logical boundaries.
+
+### 5. Commit Message Standards
+* **Write commit messages as plain English**, not as prefixed tags. The reader should understand the change without opening the diff.
+  * Good: "Fixed duration to display in HH:MM:SS from just showing hours."
+  * Bad: `fix(duration): update format util` — the prefix carries no meaning and the subject says nothing about the effect.
+* **The subject is a complete sentence** describing what changed and why it matters, in the past tense (Fixed, Added, Removed, Stopped, Documented).
+* **Bodies are expected for anything non-obvious.** A body records the reasoning the diff cannot show: what a bug actually was, which approach was rejected and why, what invariant is being protected. There is no line limit — write as much as the change warrants.
+* **Keep technical detail in the body, not the subject.** The subject orients the reader; the body serves whoever next has to change the same code.
+* **One logical change per commit.** A commit that both fixes a bug and adds a feature is two commits, and bug fixes for separate bugs stay separate even when they touch the same file.
+* **Record corrected diagnoses rather than erasing them.** When a fix reveals that an earlier root-cause analysis was wrong, say so in the body. A wrong explanation preserved in history is more dangerous than the wasted effort.
+* Bodies are written as prose, not as bullet fragments or key/value blocks.
 
 ## Cloudflare Workers Architecture
 
@@ -224,12 +237,13 @@ workers/
 The global audio player lives in the app shell (`app.component.ts`) as a persistent bottom bar.
 
 **Layout:**
-- **Collapsed state**: Mini-bar at bottom showing album artwork, song title, artist name, and play/pause button. User can browse the site normally.
+- **Collapsed state**: Mini-bar at bottom showing album artwork, song title, artist byline, and transport controls (previous / play-pause / next), a draggable seek bar with elapsed / total / remaining time, and repeat + shuffle toggles. User can browse the site normally.
 - **Expanded state**: Slides up to reveal 3 tabs while keeping persistent playback controls at the bottom.
 
 **Tab 1: Now Playing**
 - Album artwork (large)
 - Song title, artist name
+- Credits line beneath the byline, rendered identically to `app-track-row`: `feat. {featuredArtists} | Prod. {producers}`, each segment conditional and ` | `-joined, falling back to `writtenBy` when neither exists. A shared helper is the single source of truth so the player and list surfaces cannot drift apart.
 - Download / Purchase button (if not purchased)
 - Share button (WhatsApp deep link)
 - YouTube video embed as **manual toggle** — hidden by default. If `youtubeVideoId` exists on the track, a toggle button appears. Clicking it opens an iframe embed using `youtube-nocookie.com`. Video does not auto-play to avoid audio conflicts with the HTML audio element.
@@ -238,6 +252,7 @@ The global audio player lives in the app shell (`app.component.ts`) as a persist
 **Tab 2: Playlist (Queue)**
 - Displays the current playback queue from `AudioPlayerService.queue`
 - Currently playing track highlighted with an indicator
+- Each queue row renders the same credits line as Tab 1
 - Tap any track to jump to it
 - Clear queue button
 
@@ -245,6 +260,17 @@ The global audio player lives in the app shell (`app.component.ts`) as a persist
 - Shows `Song.lyrics` for the currently playing track
 - Scrollable text view
 - Future: highlighted annotations, auto-scroll with playback
+
+### Playback Modes
+`AudioPlayerService` owns these two signals; the player component only reflects them.
+
+- `repeatMode: 'off' | 'all' | 'one'` — cycles off → all → one.
+  - `off` : playback stops at the end of the queue.
+  - `all` : `playNext()` / `playPrevious()` wrap at the queue boundaries.
+  - `one` : the `ended` handler restarts the current track instead of advancing.
+- `isShuffled: boolean` — a Fisher-Yates permutation of the queue. The **queue signal itself is never reshuffled**; navigation resolves through the permutation so the displayed order always matches the audible order.
+- Both modes persist in `localStorage` (a device/listener preference, not Firestore user data) and are rehydrated on service construction, SSR-guarded.
+- Repeat and shuffle toggles appear in the expanded transport **and** the mini-bar, each exposing `aria-pressed` and a cycle-state visual treatment.
 
 ### AudioPlayerService Track Model
 Enriched `Track` interface:
@@ -255,11 +281,15 @@ export interface Track {
   readonly artist: string;
   readonly artistId: string;
   readonly albumId?: string;
+  readonly albumTitle?: string;
   readonly streamUrl: string;
   readonly artworkUrl?: string;
   readonly duration?: number;
   readonly youtubeVideoId?: string;
   readonly lyrics?: string;
+  readonly featuredArtists?: string;
+  readonly producers?: string;
+  readonly writtenBy?: string;
   readonly priceZAR?: number;
   readonly minimumPriceZAR?: number;
 }
@@ -281,3 +311,21 @@ export interface Track {
   - Album purchase: `albumId` + `songIds` snapshot of all tracks in the album at time of purchase (written by the webhook, which queries `songs` by `albumId` with `isDeleted == false`)
 - **Album ownership check**: `PaymentService.checkAlbumPurchaseStatus()` reads the user's own `purchases_ledger` rows (`where userId == <self>`) and filters for a completed album purchase — no composite index required.
 - **Download authorization**: The signed URL worker queries `purchases_ledger` to verify a user has purchased either the specific song or an album containing it.
+
+## Song Authoring Pipeline
+
+* **One** authoring form serves the artist. `SongManagementComponent` and `AlbumManagementComponent` are orphaned — `artist.routes.ts` resolves `/artist/albums` and `/artist/songs` to `ArtistDetailComponent`, so neither component is reachable. Any new authoring UI must be built on `SongFormDialogComponent`, or the routes must be rewired first. **Orphaned components are not a supported extension point.**
+* Duration is **derived from the uploaded file** via `UploadService.readAudioDuration(file)` and is never manually typed. The detected value is surfaced read-only to the artist.
+* Song type (`album` | `single`) gates `albumId`/`trackNumber` **and their validators together**; the two must never disagree.
+* Converting an album track to a single explicitly writes `albumId: null` and `trackNumber: null` (Firestore accepts `null`; `sanitizeForFirestore` preserves it) so the stale relationship is not left behind.
+
+## Catalog Browsing Standards
+
+* Public catalogue surfaces **MUST NOT silently truncate**. A `slice()` cap on albums or songs is permitted only when the surface renders a count plus a "see all" / "show more" affordance that reveals the remainder.
+* Grids sized with `auto-fill`/`auto-fit` scroll naturally; a cap exists to bound initial render, not to hide content.
+* Applies to `explore.component.ts` (`recentAlbums`, `recentSongs`) and the `album-detail` "More from {artist}" rail.
+
+## Playlist Integrity
+
+* An **empty song set MUST NOT** be added to a playlist. The guard lives in `AddToPlaylistDialogComponent` and `PlaylistService.addSongs()` — a template `[disabled]` binding is presentation-only and is not a sufficient guard.
+* `containsAll()` must return `false` for an empty `songIds` input; `[].every()` is vacuously `true` and would otherwise mark every playlist as "Added" and report a false success on create.

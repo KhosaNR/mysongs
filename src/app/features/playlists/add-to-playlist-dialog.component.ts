@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, ChangeDetectionStrategy, effect } from '@angular/core';
+import { Component, computed, inject, input, output, signal, ChangeDetectionStrategy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ModalDialogComponent } from '../../shared/components/modal-dialog/modal-dialog.component';
@@ -77,13 +77,30 @@ export class AddToPlaylistDialogComponent {
     }
   }
 
-  /** Whether every requested song already belongs to the playlist. */
+  /**
+   * Whether every requested song already belongs to the playlist.
+   *
+   * An empty request is never "already contained" — `[].every()` is vacuously
+   * true, which would otherwise mark every playlist as Added.
+   */
   containsAll(playlist: PlaylistWithId): boolean {
-    return this.songIds().every((id) => playlist.songIds.includes(id));
+    const ids = this.songIds();
+    if (ids.length === 0) {
+      return false;
+    }
+    return ids.every((id) => playlist.songIds.includes(id));
   }
+
+  /** Whether the dialog has any tracks to add at all. */
+  protected readonly hasSongs = computed(() => this.songIds().length > 0);
 
   /** Adds the requested songs to an existing playlist. */
   async addToPlaylist(playlist: PlaylistWithId): Promise<void> {
+    if (this.songIds().length === 0) {
+      this.error.set('There are no tracks to add.');
+      return;
+    }
+
     this.error.set(null);
     this.feedback.set(null);
     const result = await this.playlistService.addSongs(playlist.id, this.songIds());
@@ -101,6 +118,10 @@ export class AddToPlaylistDialogComponent {
     const name = this.newPlaylistName().trim();
     if (!user || !name) return;
 
+    if (this.songIds().length === 0) {
+      this.error.set('There are no tracks to add.');
+      return;
+    }
     this.isCreating.set(true);
     this.error.set(null);
     this.feedback.set(null);

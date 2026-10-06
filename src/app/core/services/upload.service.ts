@@ -10,6 +10,23 @@ export interface UploadResult {
 }
 
 /**
+ * Tags and technical data read from an uploaded audio file.
+ *
+ * Every field is optional: a file may carry no tags at all, and the artist can
+ * always override whatever is pre-filled.
+ */
+export interface AudioFileMetadata {
+  readonly title?: string;
+  readonly album?: string;
+  readonly albumArtist?: string;
+  readonly artists?: string;
+  readonly year?: number;
+  readonly trackNumber?: number;
+  readonly genre?: string;
+  readonly durationSeconds?: number;
+}
+
+/**
  * Service handling file uploads to Cloudflare R2 via the Worker.
  */
 @Injectable({
@@ -17,6 +34,24 @@ export interface UploadResult {
 })
 export class UploadService {
   readonly uploadProgress = signal<number>(0);
+
+  /**
+   * Maximum number of times a single request will wait out a Worker
+   * rate-limit window before surfacing the failure.
+   */
+  private static readonly MAX_RATE_LIMIT_RETRIES = 3;
+
+  /**
+   * Longest single wait, mirroring the Worker's 60 s sliding window so a retry
+   * cannot sleep past the window it is waiting for.
+   */
+  private static readonly MAX_RATE_LIMIT_WAIT_MS = 65_000;
+
+  /**
+   * True while an upload is paused waiting out a Worker rate-limit window, so
+   * the UI can surface a "resuming shortly" state instead of appearing hung.
+   */
+  readonly isRateLimited = signal(false);
 
   /**
    * Requests an R2 upload URL from the Worker, then PUTs the file.
@@ -30,8 +65,8 @@ export class UploadService {
     const workerUrl = environment.api.workerUrl;
 
     try {
-      const uploadUrlResponse = await fetch(
-        `${workerUrl}/uploads?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}&fileSize=${file.size}`
+      const uploadUrlResponse = await this.fetchWithRateLimit(
+        `${workerUrl}/uploads?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}&fileSize=${file.size}`,
       );
 
       if (!uploadUrlResponse.ok) {
@@ -42,7 +77,7 @@ export class UploadService {
       const { uploadUrl } = await uploadUrlResponse.json();
       this.uploadProgress.set(30);
 
-      const uploadResponse = await fetch(uploadUrl, {
+      const uploadResponse = await this.fetchWithRateLimit(uploadUrl, {
         method: 'PUT',
         body: file,
         headers: {
@@ -68,6 +103,107 @@ export class UploadService {
         throw error;
       }
       throw new Error('Upload failed. Please try again.', { cause: error });
+    } finally {
+      this.isRateLimited.set(false);
+    }
+  }
+
+  /**
+   * Issues a request, transparently waiting out Worker rate limiting.
+   *
+   * The Worker's sliding-window limiter responds with `X-RateLimit-Reset`
+   * (a Unix timestamp). The client honours it and replays the identical
+   * request once the window has rolled, so a throttled upload resumes rather
+   * than failing. Exhausting the retry budget returns the 429 response for the
+   * caller to handle.
+   *
+   * @param input - Request URL
+   * @param init - Optional fetch init
+   * @returns The fetch response
+   */
+  private async fetchWithRateLimit(input: string, init?: RequestInit): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+      const response = await fetch(input, init);
+
+      if (response.status !== 429 || attempt >= UploadService.MAX_RATE_LIMIT_RETRIES) {
+        return response;
+      }
+
+      const waitMs = this.resolveRateLimitWaitMs(response, attempt);
+      this.isRateLimited.set(true);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+
+  /**
+   * Determines how long to wait before replaying a throttled request.
+   *
+   * Prefers the Worker's `X-RateLimit-Reset`, then `Retry-After`, and finally
+   * falls back to exponential backoff with jitter.
+   *
+   * @param response - The 429 response
+   * @param attempt - Zero-based retry attempt index
+   * @returns Wait duration in milliseconds
+   */
+  private resolveRateLimitWaitMs(response: Response, attempt: number): number {
+    const resetAt = Number(response.headers.get('X-RateLimit-Reset'));
+    if (Number.isFinite(resetAt) && resetAt > 0) {
+      const waitMs = resetAt * 1000 - Date.now();
+      if (waitMs > 0) {
+        return Math.min(waitMs, UploadService.MAX_RATE_LIMIT_WAIT_MS);
+      }
+    }
+
+    const retryAfter = Number(response.headers.get('Retry-After'));
+    if (Number.isFinite(retryAfter) && retryAfter > 0) {
+      return Math.min(retryAfter * 1000, UploadService.MAX_RATE_LIMIT_WAIT_MS);
+    }
+
+    return Math.min(1_000 * 2 ** attempt, UploadService.MAX_RATE_LIMIT_WAIT_MS) + Math.floor(Math.random() * 250);
+  }
+
+  /**
+   * Reads embedded tags from an audio file.
+   *
+   * `music-metadata` is loaded with a dynamic import so it lands in its own
+   * lazily-fetched chunk: it never enters the initial bundle, and it is never
+   * evaluated during SSR because this method only runs from a browser file
+   * selection. The package's `default` export condition resolves to its
+   * browser-safe core build.
+   *
+   * Parsing failures are non-fatal — an untagged or unrecognised file simply
+   * yields no pre-fill values, and the artist types them manually.
+   *
+   * @param file - The audio file to inspect
+   * @returns Tags found in the file, or an empty object when none could be read
+   */
+  async readAudioMetadata(file: File): Promise<AudioFileMetadata> {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    try {
+      const { parseBlob } = await import('music-metadata');
+      const { common, format } = await parseBlob(file, { duration: true });
+
+      const artists = common.artists?.filter(Boolean).join(', ') || undefined;
+
+      return {
+        title: common.title || undefined,
+        album: common.album || undefined,
+        albumArtist: common.albumartist || undefined,
+        artists,
+        year: common.year || undefined,
+        trackNumber: common.track?.no ?? undefined,
+        genre: common.genre?.filter(Boolean).join(', ') || undefined,
+        durationSeconds:
+          format.duration && Number.isFinite(format.duration)
+            ? Math.round(format.duration)
+            : undefined,
+      };
+    } catch {
+      // Unsupported or corrupt tags are not an upload failure.
+      return {};
     }
   }
 

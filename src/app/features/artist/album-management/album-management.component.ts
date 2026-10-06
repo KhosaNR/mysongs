@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Album } from '../../../shared/models/album.interface';
 import { Song } from '../../../shared/models/song.interface';
 import { AlbumFormDialogComponent, AlbumFormDialogResult } from './album-form-dialog.component';
+import { formatDuration } from '../../../core/utils/format-duration';
 
 /**
  * Album document including the Firestore document id.
@@ -185,13 +186,10 @@ export class AlbumManagementComponent {
   }
 
   /**
-   * Formats a duration in seconds as mm:ss.
+   * Formats a duration for table display, delegating to the platform formatter.
    */
   formatDuration(seconds?: number): string {
-    if (!seconds || seconds <= 0) return '—';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds, '—');
   }
 
   /**

@@ -76,26 +76,27 @@ export class ExploreComponent implements OnInit {
   readonly isPlaylistDialogOpen = signal(false);
   readonly playlistSongIds = signal<string[]>([]);
 
-  /** Recently released albums, sorted by release date desc. */
+  /**
+   * Recently released albums, sorted by release date desc.
+   *
+   * The full catalogue is returned — the grid scrolls, so capping the list here
+   * would silently hide releases with no way to reveal them.
+   */
   readonly recentAlbums = computed(() => {
-    return [...this.albums()]
-      .sort((a, b) => {
-        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-        return dateB - dateA;
-      })
-      .slice(0, 3);
+    return [...this.albums()].sort((a, b) => {
+      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      return dateB - dateA;
+    });
   });
 
   /** Recently released songs, sorted by release date desc. */
   readonly recentSongs = computed(() => {
-    return [...this.songs()]
-      .sort((a, b) => {
-        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-        return dateB - dateA;
-      })
-      .slice(0, 10);
+    return [...this.songs()].sort((a, b) => {
+      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      return dateB - dateA;
+    });
   });
 
   /** Featured album — the most recent album across all artists. */

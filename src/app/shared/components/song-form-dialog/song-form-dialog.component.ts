@@ -17,12 +17,26 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { DbService } from '../../../core/services/db.service';
-import { UploadService } from '../../../core/services/upload.service';
+import { UploadService, type AudioFileMetadata } from '../../../core/services/upload.service';
 import { Song } from '../../models/song.interface';
 import { Album } from '../../models/album.interface';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
 import { sanitizeForFirestore } from '../../../core/utils/sanitize';
+import { formatDuration } from '../../../core/utils/format-duration';
 import { FieldErrorsComponent } from '../field-errors/field-errors.component';
+
+/**
+ * Firestore write payload for a song.
+ *
+ * `albumId` and `trackNumber` deliberately widen to `null` so converting an
+ * album track into a single clears the stale relationship. `null` is preserved
+ * by `sanitizeForFirestore`, whereas `undefined` would be stripped and leave the
+ * old value in place.
+ */
+type SongWritePayload = Omit<Partial<Song>, 'albumId' | 'trackNumber'> & {
+  albumId?: string | null;
+  trackNumber?: number | null;
+};
 
 /** Song with its Firestore document ID. */
 export interface SongWithId extends Song {
@@ -92,6 +106,10 @@ export class SongFormDialogComponent {
   readonly artworkPreview = signal<string | null>(this.data.song?.artworkUrl ?? null);
   private readonly artworkFile = signal<File | null>(null);
   protected readonly audioFile = signal<File | null>(null);
+  protected readonly isReadingMetadata = signal(false);
+
+  /** Platform duration formatter, shared so the format cannot drift. */
+  protected readonly formatDuration = formatDuration;
 
   readonly formData = signal({
     title: this.data.song?.title ?? '',
@@ -169,13 +187,60 @@ export class SongFormDialogComponent {
   }
 
   /**
-   * Handles audio file selection (optional replacement in edit mode).
+   * Handles audio file selection, deriving the track duration and pre-filling
+   * the song details from the file's embedded tags so the artist rarely types
+   * anything (optional replacement in edit mode).
+   *
+   * Pre-filled values are only applied to fields the artist has not already
+   * filled in, so selecting a replacement audio file never discards typing.
+   *
+   * @param event - Native change event carrying the selected file
    */
-  onAudioSelected(event: Event): void {
+  async onAudioSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      this.audioFile.set(input.files[0]);
+    const file = input.files?.[0];
+    if (!file) {
+      return;
     }
+
+    this.audioFile.set(file);
+    this.isReadingMetadata.set(true);
+    try {
+      const [tags, duration] = await Promise.all([
+        this.uploadService.readAudioMetadata(file),
+        this.uploadService.readAudioDuration(file),
+      ]);
+
+      this.applyFileMetadata(tags, duration);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not read audio metadata');
+    } finally {
+      this.isReadingMetadata.set(false);
+    }
+  }
+
+  /**
+   * Applies values read from the uploaded file to empty form fields.
+   *
+   * The parser's duration wins when both it and the HTML5 probe succeed; the
+   * probe is the fallback because it needs no parser.
+   *
+   * @param tags - Tags read from the file, if any
+   * @param fallbackDuration - Duration from the HTML5 metadata probe
+   */
+  private applyFileMetadata(tags: AudioFileMetadata, fallbackDuration: number): void {
+    this.formData.update((data) => ({
+      ...data,
+      title: data.title.trim() || tags.title || data.title,
+      genre: data.genre.trim() || tags.genre || data.genre,
+      featuredArtists: data.featuredArtists.trim() || tags.albumArtist || data.featuredArtists,
+      releaseDate: data.releaseDate || (tags.year ? `${tags.year}-01-01` : data.releaseDate),
+      trackNumber:
+        data.songType === 'album' && data.trackNumber <= 1 && tags.trackNumber
+          ? tags.trackNumber
+          : data.trackNumber,
+      duration: tags.durationSeconds ?? (fallbackDuration || data.duration),
+    }));
   }
 
   /**
@@ -236,12 +301,12 @@ export class SongFormDialogComponent {
         throw new Error('Audio file is required for a new song.');
       }
 
-      const songData: Partial<Song> = {
+      const songData: SongWritePayload = {
         title: data.title.trim(),
         featuredArtists: data.featuredArtists.trim() || undefined,
         producers: data.producers.trim() || undefined,
-        albumId: data.songType === 'album' ? data.albumId : undefined,
-        trackNumber: data.songType === 'album' ? data.trackNumber : undefined,
+        albumId: data.songType === 'album' ? data.albumId : null,
+        trackNumber: data.songType === 'album' ? data.trackNumber : null,
         duration: data.duration || undefined,
         genre: data.genre.trim() || undefined,
         tags: data.tags

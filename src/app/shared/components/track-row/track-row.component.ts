@@ -8,12 +8,15 @@
 import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Song } from '../../models/song.interface';
+import { formatSongCredits } from '../../../core/utils/format-credits';
+import { formatDuration } from '../../../core/utils/format-duration';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-track-row',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule],
+  imports: [RouterModule, MatTooltipModule],
   template: `
     <div
       class="track-row"
@@ -143,7 +146,8 @@ import { Song } from '../../models/song.interface';
           class="track-row__play-btn"
           [class.track-row__play-btn--playing]="isPlaying()"
           (click)="onPlayClick($event)"
-          [attr.aria-label]="isPlaying() ? 'Pause ' + song().title : 'Play ' + song().title"
+          [matTooltip]="playPauseLabel()"
+          [attr.aria-label]="playPauseLabel()"
         >
           @if (isPlaying()) {
             <svg
@@ -172,6 +176,7 @@ import { Song } from '../../models/song.interface';
           type="button"
           class="track-row__share-btn"
           (click)="onShareClick($event)"
+          [matTooltip]="'Share ' + song().title"
           [attr.aria-label]="'Share ' + song().title"
         >
           <svg
@@ -198,6 +203,7 @@ import { Song } from '../../models/song.interface';
             type="button"
             class="track-row__edit-btn"
             (click)="onEditClick($event)"
+            [matTooltip]="'Edit ' + song().title"
             [attr.aria-label]="'Edit ' + song().title"
           >
             <svg
@@ -222,6 +228,7 @@ import { Song } from '../../models/song.interface';
             type="button"
             class="track-row__delete-btn"
             (click)="onDeleteClick($event)"
+            [matTooltip]="'Delete ' + song().title"
             [attr.aria-label]="'Delete ' + song().title"
           >
             <svg
@@ -248,6 +255,7 @@ import { Song } from '../../models/song.interface';
           type="button"
           class="track-row__playlist-btn"
           (click)="onAddToPlaylistClick($event)"
+          [matTooltip]="'Add ' + song().title + ' to playlist'"
           [attr.aria-label]="'Add ' + song().title + ' to playlist'"
         >
           <svg
@@ -646,21 +654,23 @@ export class TrackRowComponent {
   });
 
   /**
-   * Combined credits line for the row's second line: 'feat. … | Prod. …'.
-   * Each segment renders only when the corresponding field is present.
-   * Falls back to the songwriters when neither a featured-artist nor a
-   * producer credit exists so the artist line is not lost.
+   * Combined credits line for the row's second line.
+   *
+   * Delegates to the shared platform helper so this row, the player queue and
+   * the Now Playing tab always render the identical shape.
    */
   protected readonly credits = computed(() => {
-    const song = this.song();
-    const parts: string[] = [];
-    if (song.featuredArtists) parts.push(`feat. ${song.featuredArtists}`);
-    if (song.producers) parts.push(`Prod. ${song.producers}`);
-    return {
-      text: parts.length > 0 ? parts.join(' ') : (song.writtenBy ?? ''),
-      featured: parts.length > 0,
-    };
+    const derived = formatSongCredits(this.song());
+    return { text: derived.text, featured: derived.hasCredits };
   });
+
+  /**
+   * Label for the play/pause control, shared by `matTooltip` and `aria-label`
+   * so the two can never disagree.
+   */
+  protected readonly playPauseLabel = computed(() =>
+    this.isPlaying() ? `Pause ${this.song().title}` : `Play ${this.song().title}`,
+  );
 
   /**
    * Accessible label for the entire row.
@@ -674,14 +684,13 @@ export class TrackRowComponent {
   });
 
   /**
-   * Format duration seconds into mm:ss display format.
+   * Formats a duration, delegating to the platform formatter.
+   *
    * @param seconds - Duration in seconds
-   * @returns Formatted string (e.g., '3:45')
+   * @returns Formatted clock string (e.g. `3:45`, or `1:01:01` past an hour)
    */
   formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds);
   }
 
   /**

@@ -25,6 +25,7 @@ import {
   SongWithId,
   AlbumWithId,
 } from '../../shared/components/song-form-dialog/song-form-dialog.component';
+import { formatDuration } from '../../core/utils/format-duration';
 
 /**
  * Public song/track detail page: artwork, artist + album links, playback,
@@ -244,12 +245,9 @@ export class SongDetailComponent {
     this.isPlaylistDialogOpen.set(false);
   }
 
-  /** Formats a duration in seconds as mm:ss. */
+  /** Formats a duration for detail display, delegating to the platform formatter. */
   formatDuration(seconds?: number): string {
-    if (!seconds || seconds <= 0) return '—';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds, '—');
   }
 
   /**

@@ -82,6 +82,10 @@
               <span class="artist-detail__count-badge">{{ albums().length }} {{ albums().length === 1 ? 'album' : 'albums' }}</span>
             }
             @if (canEdit()) {
+              <button type="button" class="btn btn--secondary btn--sm" (click)="openBulkUpload()">
+                <span class="material-icons" aria-hidden="true">library_music</span>
+                Bulk Upload Album
+              </button>
               <button type="button" class="btn btn--primary btn--sm" (click)="openCreateAlbum()">
                 <span class="material-icons" aria-hidden="true">add</span>
                 Add Album
@@ -114,6 +118,7 @@
                     type="button"
                     class="artist-detail__album-edit"
                     (click)="openEditAlbum(album)"
+                    [matTooltip]="'Edit album ' + album.title"
                     [attr.aria-label]="'Edit album ' + album.title"
                   >
                     <span class="material-icons" aria-hidden="true">edit</span>
@@ -122,6 +127,7 @@
                     type="button"
                     class="artist-detail__album-delete"
                     (click)="deleteAlbum(album)"
+                    [matTooltip]="'Delete album ' + album.title"
                     [attr.aria-label]="'Delete album ' + album.title"
                   >
                     <span class="material-icons" aria-hidden="true">delete</span>
@@ -360,6 +366,7 @@
                     type="button"
                     class="artist-detail__album-edit"
                     (click)="openEditCollection(collection)"
+                    [matTooltip]="'Edit collection ' + collection.name"
                     [attr.aria-label]="'Edit collection ' + collection.name"
                   >
                     <span class="material-icons" aria-hidden="true">edit</span>

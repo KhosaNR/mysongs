@@ -129,6 +129,10 @@ export class PlaylistService {
    * @returns Result indicating success or failure
    */
   async addSongs(playlistId: string, songIds: string[]): Promise<Result<void>> {
+    if (songIds.length === 0) {
+      return Result.failure('No tracks to add to the playlist.');
+    }
+
     return this.errorHandler.execute(async () => {
       const result = await this.getPlaylist(playlistId);
       if (result.isFailure()) {

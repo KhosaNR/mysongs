@@ -207,9 +207,8 @@ export class AlbumDetailComponent {
   }
 
   /**
-   * Loads up to two other albums by the same artist, excluding the current one.
-   *
-   * @param album - The album being viewed
+   * Loads the artist's other albums by the same artist, excluding the current
+   * one. The full set is returned so the rail scrolls instead of hiding albums.
    */
   private async loadOtherAlbums(album: AlbumWithId): Promise<void> {
     const result = await this.dbService.getCollection<Album>('albums', {
@@ -229,7 +228,7 @@ export class AlbumDetailComponent {
       return dateB - dateA;
     });
 
-    this.otherAlbums.set(albums.slice(0, 2));
+    this.otherAlbums.set(albums);
   }
 
   /**

@@ -30,16 +30,25 @@
 - Use **[Angular v22 Signal Forms](https://angular.dev/guide/forms/signals)** (`form()`, `schema()`, `required()`, `email()`, … from `@angular/forms/signals`) to enforce reactive, type-safe validation. Every required field renders an inline `.form-field__error` message adjacent to the control (see `system-architecture.md` → "Field-Level Form Validation (Platform Standard)").
 - Implement **[Server-Side Rendering (SSR)]** to ensure lyric sheets, gig dates, and artist bios are indexable by search engines.
 
+#### Media Metadata Extraction
+* Uploaded audio files expose their embedded tags (album artist, album, year, track number, genre) to the authoring form for pre-filling.
+* A pure-JS, ESM-first parser is required — SSR-safe, no Node built-ins. Candidate: `music-metadata`.
+* Extraction is **client-side only**; the raw file object is never sent to the Worker for parsing.
+* Duration continues to come from `UploadService.readAudioDuration()`; a parser may supply it instead, but the two must not disagree.
+
 ### 2. Hosting & Edge Network: Firebase Hosting + Cloudflare (Free Tier)
 - **Firebase Hosting:** Hosts the Angular SSR application output (deployed via `firebase.json` `hosting` — static + SPA rewrites), served over Firebase global CDN.
 - **Cloudflare Workers:** Serverless functions for backend logic (webhooks, signed upload/download URLs, rate limiting) with sub-millisecond cold starts; deployed per environment (`my-songs-workers` prod / `my-songs-workers-qa` QA).
 - **Cloudflare CDN:** Global edge caching for audio streams served from R2 through the worker (zero egress fees).
 - **Cloudflare R2:** Object storage for audio files (128 kbps previews + 320 kbps downloads) and album art/artist images. Zero egress fees — critical for a music streaming platform.
 
-**Free tier limits:**
+**Free tier limits (COMPLETE — Workers KV was previously undocumented):**
 - Firebase Hosting (Spark): 10 GB static storage, 360 MB/day transfer
-- Workers: 100,000 requests/day
+- Workers: 100,000 requests/day (hard cap, not billed)
+- Workers KV: 100,000 reads/day but only **1,000 writes/day**; 1 GB stored. Exceeding a limit makes that operation **fail with an error** — it does not bill, but the caller must degrade predictably.
 - R2: 10 GB storage, zero egress fees
+
+> **KV writes are the platform's hidden ceiling, not Worker requests.** The sliding-window rate limiter performs one KV read *and* one KV write per request, so a per-request KV write caps the whole Worker at roughly **1,000 requests/day** regardless of the 100,000 request allowance. Per-request KV writes on hot paths (asset/stream serving) are therefore **prohibited**.
 
 ### 3. Identity & Database: Firebase Spark Tier (Reduced Scope)
 - **[Firebase Auth]:** Manages secure, authenticated sessions (Email/Password, Google). Custom claims are injected into JWT tokens to differentiate Admins, Artists, and Listeners; sessions without a granted role resolve to the derived **VISITOR** state (browse-only) until registration grants either `listener` or `artist`. *No Cloudflare equivalent exists for consumer auth.*
@@ -95,7 +104,10 @@
 ### 6. Defensive Logging & POPIA Compliance
 - **[PII Masking]:** Logs must pass through a sanitization pipe. Raw email addresses, phone formats, credit card signatures, and physical addresses must be masked before write execution.
 - **[Audit Trails]:** A dedicated, read-only `purchases_ledger` collection must record all transaction reference IDs, purchasing user IDs, timestamp objects, and file access actions for dispute resolution.
-- **[Rate Limiting]:** Protect Cloudflare Worker endpoints with sliding-window rate limit checks (maximum 5 download requests per minute per user).
+- **[Rate Limiting]:** A sliding-window KV limiter guards **every** Worker endpoint at **30 requests / 60 s keyed by client IP** (only `/health` is exempt). This is a **backpressure contract, not a capacity ceiling**. Uploads cost **two** requests per file (`GET /uploads` then `PUT /uploads/{key}`), capping a single artist at **15 files/min**; `/stream` and `/assets` draw on the same budget only when `R2_PUBLIC_URL` is unset. A 429 response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`, and clients MUST pace against them and resume at `X-RateLimit-Reset` rather than failing. **Raising the limit is not a prerequisite for bulk upload** — clients adapt to the limit as written.
+- **Limiter scope (deferred, unimplemented):** read-only `/stream` and `/assets` traffic must not consume the per-request KV write, and assets should be served off-Worker whenever `R2_PUBLIC_URL` is set (the preferred production posture). Today they do, so production correctness depends on `R2_PUBLIC_URL` being a non-empty string in both QA and prod.
+- **Fail-open signalling (deferred, unimplemented):** the limiter fails open by design, so KV quota exhaustion silently disables it. That path must log through the structured PII-masked `logger`, not `console.error`, so exhaustion is detectable in Worker logs.
+- **Bulk uploads adhere to the rate limit; they never raise it.** `UploadService` provides shared 429-aware transport used by both single-file and batch paths: pace proactively off `X-RateLimit-Remaining` and never burst the window; on 429, sleep until `X-RateLimit-Reset` and resume at the same queue index (lossless), with exponential backoff + jitter as fallback when the header is absent. A throttled batch is a **waiting state, not an error** — the UI reports "Rate limit reached — resuming in Ns" rather than failing the upload. Per-file status is tracked (queued / uploading / waiting / done / failed), one file's failure never aborts the batch, and Firestore writes commit only after the media uploads succeed so a failed upload never leaves an orphaned `songs` document. A batch spanning multiple rate-limit windows is expected and surfaced as progress.
 
 ## Storage Requirements
 

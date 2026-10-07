@@ -12,6 +12,7 @@ import { Song } from '../../../shared/models/song.interface';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
 import { FieldErrorsComponent } from '../../../shared/components/field-errors/field-errors.component';
 import { formatDuration } from '../../../core/utils/format-duration';
+import { toDateInputValue } from '../../../core/utils/firestore-date';
 
 export interface SongWithId extends Song {
   readonly id: string;
@@ -274,7 +275,7 @@ export class SongManagementComponent {
       tags: song.tags?.join(', ') || '',
       lyrics: song.lyrics || '',
       youtubeVideoId: song.youtubeVideoId || '',
-      releaseDate: song.releaseDate ? new Date(song.releaseDate).toISOString().slice(0, 10) : '',
+      releaseDate: toDateInputValue(song.releaseDate),
       writtenBy: song.writtenBy || '',
       primaryColor: song.themeColors?.primary || DEFAULT_PLATFORM_COLORS.primary,
       secondaryColor: song.themeColors?.secondary || DEFAULT_PLATFORM_COLORS.secondary,

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Result } from '../../core/utils/error-handler';
 import { DbService } from '../../core/services/db.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -53,6 +53,7 @@ describe('BulkUploadDialogComponent', () => {
       imports: [BulkUploadDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: dialogRef },
+        { provide: MAT_DIALOG_DATA, useValue: { albums } },
         {
           provide: DbService,
           useValue: { createWithId, generateId: () => 'generated_id' },
@@ -74,8 +75,17 @@ describe('BulkUploadDialogComponent', () => {
     }).compileComponents();
 
     const fixture = TestBed.createComponent(BulkUploadDialogComponent);
-    fixture.componentRef.setInput('albums', albums);
+    fixture.componentRef.setInput('albumsInput', albums);
     component = fixture.componentInstance;
+  });
+
+  it('should prefer the albums component input when set', () => {
+    expect(component.albums()).toEqual(albums);
+  });
+
+  it('should fall back to MAT_DIALOG_DATA when no input is set', () => {
+    const fixture = TestBed.createComponent(BulkUploadDialogComponent);
+    expect(fixture.componentInstance.albums()).toEqual(albums);
   });
 
   it('should start with nothing staged and submit disabled', () => {

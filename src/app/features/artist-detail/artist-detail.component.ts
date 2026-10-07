@@ -7,6 +7,7 @@ import { DbService } from '../../core/services/db.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { AudioPlayerService } from '../../core/services/audio-player.service';
 import { AuthService } from '../../core/services/auth.service';
+import { toDateSafe } from '../../core/utils/firestore-date';
 import { Artist } from '../../shared/models/artist.interface';
 import { Album } from '../../shared/models/album.interface';
 import { Song } from '../../shared/models/song.interface';
@@ -155,8 +156,8 @@ export class ArtistDetailComponent {
   /** Albums sorted by release date desc (year desc). */
   readonly sortedAlbums = computed(() => {
     return [...this.albums()].sort((a, b) => {
-      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const dateA = toDateSafe(a.releaseDate)?.getTime() ?? 0;
+      const dateB = toDateSafe(b.releaseDate)?.getTime() ?? 0;
       return dateB - dateA;
     });
   });
@@ -164,8 +165,8 @@ export class ArtistDetailComponent {
   /** All songs sorted by release date desc. */
   readonly sortedSongs = computed(() => {
     return [...this.songs()].sort((a, b) => {
-      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const dateA = toDateSafe(a.releaseDate)?.getTime() ?? 0;
+      const dateB = toDateSafe(b.releaseDate)?.getTime() ?? 0;
       return dateB - dateA;
     });
   });
@@ -313,10 +314,19 @@ export class ArtistDetailComponent {
       ]);
 
       if (albumsResult.isSuccess()) {
-        this.albums.set(albumsResult.getData().map((doc) => ({ ...doc.data, id: doc.id })));
+        this.albums.set(
+          albumsResult
+            .getData()
+            .map((doc) => ({ ...doc.data, id: doc.id }))
+            .filter((album) => !album.isDeleted),
+        );
+      } else {
+        this.error.set(albumsResult.getError());
       }
       if (songsResult.isSuccess()) {
         this.songs.set(songsResult.getData().map((doc) => doc.data));
+      } else if (!albumsResult.isSuccess()) {
+        this.error.set(songsResult.getError());
       }
       if (collectionsResult.isSuccess()) {
         this.collections.set(collectionsResult.getData().map((doc) => ({ ...doc.data, id: doc.id })));
@@ -364,7 +374,12 @@ export class ArtistDetailComponent {
         }),
       ]);
       if (albumsResult.isSuccess()) {
-        this.albums.set(albumsResult.getData().map((doc) => ({ ...doc.data, id: doc.id })));
+        this.albums.set(
+          albumsResult
+            .getData()
+            .map((doc) => ({ ...doc.data, id: doc.id }))
+            .filter((album) => !album.isDeleted),
+        );
       }
       if (songsResult.isSuccess()) {
         this.songs.set(songsResult.getData().map((doc) => doc.data));

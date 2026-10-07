@@ -18,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { DbService } from '../../../core/services/db.service';
 import { UploadService, type AudioFileMetadata } from '../../../core/services/upload.service';
+import { toDateInputValue } from '../../../core/utils/firestore-date';
 import { Song } from '../../models/song.interface';
 import { Album } from '../../models/album.interface';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
@@ -125,9 +126,7 @@ export class SongFormDialogComponent {
     tags: (this.data.song?.tags ?? []).join(', '),
     lyrics: this.data.song?.lyrics ?? '',
     youtubeVideoId: this.data.song?.youtubeVideoId ?? '',
-    releaseDate: this.data.song?.releaseDate
-      ? new Date(this.data.song.releaseDate).toISOString().slice(0, 10)
-      : '',
+    releaseDate: toDateInputValue(this.data.song?.releaseDate),
     writtenBy: this.data.song?.writtenBy ?? '',
     priceZAR: this.data.song?.priceZAR ?? 0,
     minimumPriceZAR: this.data.song?.minimumPriceZAR ?? 0,

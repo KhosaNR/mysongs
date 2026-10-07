@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { DbService } from '../../core/services/db.service';
 import { where } from '@angular/fire/firestore';
 import { ThemeService } from '../../core/services/theme.service';
+import { toDateSafe } from '../../core/utils/firestore-date';
 import { AudioPlayerService } from '../../core/services/audio-player.service';
 import { Artist } from '../../shared/models/artist.interface';
 import { Song } from '../../shared/models/song.interface';
@@ -84,8 +85,8 @@ export class ExploreComponent implements OnInit {
    */
   readonly recentAlbums = computed(() => {
     return [...this.albums()].sort((a, b) => {
-      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const dateA = toDateSafe(a.releaseDate)?.getTime() ?? 0;
+      const dateB = toDateSafe(b.releaseDate)?.getTime() ?? 0;
       return dateB - dateA;
     });
   });
@@ -93,8 +94,8 @@ export class ExploreComponent implements OnInit {
   /** Recently released songs, sorted by release date desc. */
   readonly recentSongs = computed(() => {
     return [...this.songs()].sort((a, b) => {
-      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const dateA = toDateSafe(a.releaseDate)?.getTime() ?? 0;
+      const dateB = toDateSafe(b.releaseDate)?.getTime() ?? 0;
       return dateB - dateA;
     });
   });

@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { PiiMaskService } from '../services/pii-mask.service';
 import { NetworkStatusService } from '../services/network-status.service';
+import { getAuthErrorMessage } from './auth-error-messages';
 
 /**
  * Firestore/Auth error codes that unambiguously indicate a network
@@ -262,13 +263,12 @@ export class ErrorHandler {
    * @private
    */
   private getConsumerFriendlyMessage(errorCode: string): string {
+    const authMessage = getAuthErrorMessage(errorCode);
+    if (authMessage) {
+      return authMessage;
+    }
+
     const errorMap: Record<string, string> = {
-      'auth/user-not-found': 'Invalid email or password.',
-      'auth/wrong-password': 'Invalid email or password.',
-      'auth/email-already-in-use': 'This email is already registered.',
-      'auth/weak-password': 'Password should be at least 6 characters.',
-      'auth/invalid-email': 'Please enter a valid email address.',
-      'auth/network-request-failed': 'Network error. Please check your connection.',
       'permission-denied': 'You do not have permission to perform this action.',
       'not-found': 'The requested resource was not found.',
       'already-exists': 'This record already exists.',

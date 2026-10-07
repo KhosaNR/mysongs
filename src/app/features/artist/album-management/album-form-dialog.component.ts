@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DbService } from '../../../core/services/db.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UploadService } from '../../../core/services/upload.service';
+import { toDateInputValue } from '../../../core/utils/firestore-date';
 import { Album, AlbumCredits } from '../../../shared/models/album.interface';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
 import type { AlbumWithId } from './album-management.component';
@@ -82,9 +83,7 @@ export class AlbumFormDialogComponent {
     title: this.data.album?.title ?? '',
     genre: this.data.album?.genre ?? '',
     country: this.data.album?.country ?? '',
-    releaseDate: this.data.album?.releaseDate
-      ? new Date(this.data.album.releaseDate).toISOString().slice(0, 10)
-      : '',
+    releaseDate: toDateInputValue(this.data.album?.releaseDate),
     writtenBy: this.data.album?.credits?.writtenBy ?? '',
     producedBy: this.data.album?.credits?.producedBy ?? '',
     mixedMasteredBy: this.data.album?.credits?.mixedMasteredBy ?? '',

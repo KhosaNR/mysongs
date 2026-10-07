@@ -73,10 +73,17 @@ src/app/
 * **Write commit messages as plain English**, not as prefixed tags. The reader should understand the change without opening the diff.
   * Good: "Fixed duration to display in HH:MM:SS from just showing hours."
   * Bad: `fix(duration): update format util` — the prefix carries no meaning and the subject says nothing about the effect.
+
+### 6. Mandatory Regression Gate (Always-On)
+* Before any implementation, classify the defect as **regression vs latent**: run `git status --short`, `git log --oneline -15 -- <touched areas>`, and `git diff <base>..HEAD --stat` to identify which recent task introduced or exposed it.
+* Re-open every adjacent flow the touched files serve (album create/edit, song create/edit, bulk-upload open/pick/submit, post-create navigation). Backdrop-only dialogs and `NG0950` required-input errors are the known signatures of a dialog-wiring regression.
+* After implementation: `test:ci` + `lint` + production `build` must all be green, plus one regression test pinning the fixed behaviour. No task is complete with a red or skipped gate.
 * **The subject is a complete sentence** describing what changed and why it matters, in the past tense (Fixed, Added, Removed, Stopped, Documented).
 * **Bodies are expected for anything non-obvious.** A body records the reasoning the diff cannot show: what a bug actually was, which approach was rejected and why, what invariant is being protected. There is no line limit — write as much as the change warrants.
 * **Keep technical detail in the body, not the subject.** The subject orients the reader; the body serves whoever next has to change the same code.
-* **One logical change per commit.** A commit that both fixes a bug and adds a feature is two commits, and bug fixes for separate bugs stay separate even when they touch the same file.
+* **One logical change per commit.** A commit that both fixes a bug and adds a feature is two commits, and bug fixes for separate bugs stay separate even when they touch the same file. The sole routine exception is a specification note that only ever lands as a silent passenger inside a product commit, never as its own commit and never mentioned in the message.
+* **No process commentary in commits.** Messages describe the product change in plain human voice. Never reference agent workflow, prompts, tasks, gates, test/lint/build machinery, commit hashes, or model behaviour — in subjects, bodies, or code comments.
+* **Ask before any commit, push, or merge.** Present the exact message and file list first and proceed only on explicit approval. Never commit, push, force-push, or promote branches autonomously.
 * **Record corrected diagnoses rather than erasing them.** When a fix reveals that an earlier root-cause analysis was wrong, say so in the body. A wrong explanation preserved in history is more dangerous than the wasted effort.
 * Bodies are written as prose, not as bullet fragments or key/value blocks.
 

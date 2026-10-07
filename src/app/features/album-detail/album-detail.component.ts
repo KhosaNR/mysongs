@@ -13,6 +13,7 @@ import { Album } from '../../shared/models/album.interface';
 import { Artist } from '../../shared/models/artist.interface';
 import { Song } from '../../shared/models/song.interface';
 import { songToTrack } from '../../core/utils/track-mapper';
+import { toDateSafe } from '../../core/utils/firestore-date';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { ErrorBannerComponent } from '../../shared/components/error-banner/error-banner.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -223,8 +224,8 @@ export class AlbumDetailComponent {
 
     // Prefer the most recently released albums.
     albums.sort((a, b) => {
-      const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const dateA = toDateSafe(a.releaseDate)?.getTime() ?? 0;
+      const dateB = toDateSafe(b.releaseDate)?.getTime() ?? 0;
       return dateB - dateA;
     });
 

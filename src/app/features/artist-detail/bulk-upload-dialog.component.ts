@@ -21,6 +21,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -91,8 +92,29 @@ export class BulkUploadDialogComponent {
     MatDialogRef,
   );
 
-  /** Existing albums the batch may be filed under. */
-  readonly albums = input.required<BulkAlbumOption[]>();
+  /**
+   * Existing albums the batch may be filed under, when set as a component
+   * input (unit tests). Production opens the dialog via
+   * `MatDialog.open(..., { data: { albums } })`, which feeds `MAT_DIALOG_DATA`
+   * and never populates component inputs.
+   */
+  readonly albumsInput = input<BulkAlbumOption[]>([]);
+
+  private readonly dialogData = inject<{ readonly albums?: BulkAlbumOption[] }>(
+    MAT_DIALOG_DATA,
+    { optional: true },
+  );
+
+  /**
+   * Existing albums the batch may be filed under.
+   *
+   * Reads the `albums` component input first (unit tests) and falls back to
+   * `MAT_DIALOG_DATA` (production `MatDialog.open(..., { data: { albums } })`,
+   * which never populates component inputs).
+   */
+  readonly albums = computed(() => this.albumsInput().length > 0
+    ? this.albumsInput()
+    : (this.dialogData?.albums ?? this.albumsInput()));
 
   readonly tracks = signal<BulkTrackDraft[]>([]);
   readonly albumTitle = signal('');

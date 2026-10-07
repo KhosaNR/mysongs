@@ -2,6 +2,10 @@ import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { FormRoot, FormField, form, required, email } from '@angular/forms/signals';
 import { AuthService } from '../../../core/services/auth.service';
+import {
+  PASSWORD_RESET_GENERIC_SUCCESS_MESSAGE,
+  isPasswordResetEnumerationMessage,
+} from '../../../core/utils/auth-error-messages';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
 import { ErrorBannerComponent } from '../../../shared/components/error-banner/error-banner.component';
@@ -14,8 +18,8 @@ interface ResetFormModel {
 /**
  * Password reset page.
  *
- * Allows users to request a password reset email.
- * Shows success message after email is sent.
+ * Shows the same confirmation whether or not an account exists for the
+ * email, so observers cannot probe which addresses are registered.
  */
 @Component({
   selector: 'app-password-reset',
@@ -39,6 +43,7 @@ export class PasswordResetComponent {
   readonly isLoading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
   readonly emailSent = signal<boolean>(false);
+  readonly confirmationMessage = PASSWORD_RESET_GENERIC_SUCCESS_MESSAGE;
 
   readonly resetModel = signal<ResetFormModel>({ email: '' });
 
@@ -63,12 +68,25 @@ export class PasswordResetComponent {
     this.isLoading.set(false);
 
     if (result.isFailure()) {
+      if (isPasswordResetEnumerationMessage(result.getError())) {
+        this.showResetConfirmation();
+        return;
+      }
       this.error.set(result.getError());
       return;
     }
 
+    this.showResetConfirmation();
+  }
+
+  /**
+   * Reveals the generic confirmation and toast.
+   *
+   * @private
+   */
+  private showResetConfirmation(): void {
     this.emailSent.set(true);
-    this.toastService.show('Password reset email sent!', { type: 'success' });
+    this.toastService.show(PASSWORD_RESET_GENERIC_SUCCESS_MESSAGE, { type: 'success' });
   }
 
   clearError(): void {

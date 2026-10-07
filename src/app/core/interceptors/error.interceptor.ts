@@ -8,6 +8,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { ErrorHandler } from '../utils/error-handler';
+import { getAuthErrorMessage } from '../utils/auth-error-messages';
 import { PiiMaskPipe } from '../../shared/pipes/pii-mask.pipe';
 import { NetworkStatusService } from '../services/network-status.service';
 
@@ -237,14 +238,13 @@ function getConsumerFriendlyMessage(status: number, errorCode: string): string {
     504: 'Request timed out. Please try again.',
   };
 
-  // Error code-based overrides
+  // Auth code-based overrides (shared catalog — see auth-error-messages.ts)
+  const authMessage = getAuthErrorMessage(errorCode);
+  if (authMessage) {
+    return authMessage;
+  }
+
   const errorCodeMessages: Record<string, string> = {
-    'auth/user-not-found': 'Invalid email or password.',
-    'auth/wrong-password': 'Invalid email or password.',
-    'auth/email-already-in-use': 'This email is already registered.',
-    'auth/weak-password': 'Password should be at least 6 characters.',
-    'auth/invalid-email': 'Please enter a valid email address.',
-    'auth/network-request-failed': 'Network error. Please check your connection.',
     'permission-denied': 'You do not have permission to perform this action.',
     'not-found': 'The requested resource was not found.',
     'already-exists': 'This record already exists.',

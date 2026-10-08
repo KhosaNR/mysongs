@@ -100,6 +100,94 @@ describe('BulkUploadDialogComponent', () => {
     expect(component.canSubmit()).toBe(true);
   });
 
+  describe('locked album mode (Add Songs chooser)', () => {
+    const lockedAlbum = { id: 'locked_1', title: 'Locked Album' };
+
+    async function createLockedComponent(): Promise<BulkUploadDialogComponent> {
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [BulkUploadDialogComponent],
+          providers: [
+            { provide: MatDialogRef, useValue: dialogRef },
+            { provide: MAT_DIALOG_DATA, useValue: { albums, lockedAlbum } },
+            {
+              provide: DbService,
+              useValue: { createWithId, generateId: () => 'generated_id' },
+            },
+            {
+              provide: AuthService,
+              useValue: { currentUser: signal({ userId: 'u1', artistId: 'artist_1' }) },
+            },
+            {
+              provide: UploadService,
+              useValue: {
+                uploadFile,
+                uploadProgress: signal(0),
+                isRateLimited: signal(false),
+                readAudioMetadata: vi.fn().mockResolvedValue({}),
+              },
+            },
+          ],
+        })
+        .compileComponents();
+
+      const fixture = TestBed.createComponent(BulkUploadDialogComponent);
+      return fixture.componentInstance;
+    }
+
+    it('should report locked mode without a title', async () => {
+      const locked = await createLockedComponent();
+
+      expect(locked.isLocked()).toBe(true);
+      expect(locked.lockedAlbum()).toEqual(lockedAlbum);
+    });
+
+    it('should enable submit with tracks and no title when locked', async () => {
+      const locked = await createLockedComponent();
+      locked.tracks.set(
+        [audioFile('a.mp3')].map(
+          (file, index): BulkTrackDraft => ({
+            file,
+            title: `Track ${index + 1}`,
+            albumArtist: '',
+            genre: '',
+            trackNumber: index + 1,
+            durationSeconds: 200,
+            status: 'pending',
+          }),
+        ),
+      );
+
+      expect(locked.canSubmit()).toBe(true);
+    });
+
+    it('should file every track under the locked album without creating one', async () => {
+      uploadFile.mockResolvedValue({ objectKey: 'k', publicUrl: 'https://cdn/k' });
+      const locked = await createLockedComponent();
+      locked.tracks.set(
+        [audioFile('a.mp3')].map(
+          (file, index): BulkTrackDraft => ({
+            file,
+            title: `Track ${index + 1}`,
+            albumArtist: '',
+            genre: '',
+            trackNumber: index + 1,
+            durationSeconds: 200,
+            status: 'pending',
+          }),
+        ),
+      );
+
+      await locked.submit();
+
+      const albumCalls = createWithId.mock.calls.filter((call) => call[0] === 'albums');
+      expect(albumCalls.length).toBe(0);
+      const songCalls = createWithId.mock.calls.filter((call) => call[0] === 'songs');
+      expect(songCalls.length).toBe(1);
+      expect(songCalls[0][2]).toEqual(expect.objectContaining({ albumId: 'locked_1' }));
+    });
+  });
+
   it('should reject a selection containing no audio files', async () => {
     const nonAudio = new File(['x'], 'cover.jpg', { type: 'image/jpeg' });
 

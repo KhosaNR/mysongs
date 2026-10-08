@@ -44,6 +44,18 @@ export interface BulkAlbumOption {
   readonly title: string;
 }
 
+/** Album a batch is locked to, hiding the title input entirely. */
+export interface BulkLockedAlbum {
+  readonly id: string;
+  readonly title: string;
+}
+
+/** Dialog data: the album list plus an optional album the batch is locked to. */
+export interface BulkUploadDialogData {
+  readonly albums?: BulkAlbumOption[];
+  readonly lockedAlbum?: BulkLockedAlbum;
+}
+
 /** Progress of a single file in the batch. */
 export type BulkTrackStatus = 'pending' | 'uploading' | 'waiting' | 'done' | 'failed';
 
@@ -100,10 +112,16 @@ export class BulkUploadDialogComponent {
    */
   readonly albumsInput = input<BulkAlbumOption[]>([]);
 
-  private readonly dialogData = inject<{ readonly albums?: BulkAlbumOption[] }>(
-    MAT_DIALOG_DATA,
-    { optional: true },
-  );
+  private readonly dialogData = inject<BulkUploadDialogData>(MAT_DIALOG_DATA, { optional: true });
+
+  /**
+   * Album the batch is locked to. When set, the title input is hidden and
+   * every track is filed under this album — used by the Add Songs chooser.
+   */
+  readonly lockedAlbum = computed(() => this.dialogData?.lockedAlbum ?? null);
+
+  /** Whether the batch is locked to one album. */
+  readonly isLocked = computed(() => this.lockedAlbum() !== null);
 
   /**
    * Existing albums the batch may be filed under.
@@ -138,7 +156,10 @@ export class BulkUploadDialogComponent {
   );
   readonly hasTracks = computed(() => this.tracks().length > 0);
   readonly canSubmit = computed(
-    () => this.hasTracks() && this.albumTitle().trim().length > 0 && !this.isUploading(),
+    () =>
+      this.hasTracks() &&
+      (this.isLocked() || this.albumTitle().trim().length > 0) &&
+      !this.isUploading(),
   );
 
   /** Human-readable status for a file row. */
@@ -235,7 +256,11 @@ export class BulkUploadDialogComponent {
   /** Validates the batch and starts the sequential upload. */
   async submit(): Promise<void> {
     if (!this.canSubmit()) {
-      this.error.set('Give the album a title and add at least one track.');
+      this.error.set(
+        this.isLocked()
+          ? 'Add at least one track.'
+          : 'Give the album a title and add at least one track.',
+      );
       return;
     }
     await this.runUpload();
@@ -324,11 +349,17 @@ export class BulkUploadDialogComponent {
 
   /**
    * Resolves the album the batch belongs to, creating it on first use.
+   * A locked batch skips the lookup entirely and returns the locked id.
    *
    * @param artistId - Owning artist
    * @returns The album document id, or null when it could not be created
    */
   private async resolveAlbumId(artistId: string): Promise<string | null> {
+    const locked = this.lockedAlbum();
+    if (locked) {
+      return locked.id;
+    }
+
     const title = this.albumTitle().trim();
 
     const existing = this.albums().find(

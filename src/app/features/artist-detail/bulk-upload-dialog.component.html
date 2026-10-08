@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Bulk Upload Album</h2>
+<h2 mat-dialog-title>{{ isLocked() ? 'Add Songs to ' + (lockedAlbum()?.title ?? 'Album') : 'Bulk Upload Album' }}</h2>
 
 <mat-dialog-content>
   @if (error()) {
@@ -11,8 +11,13 @@
   }
 
   <p class="bulk-upload__intro">
-    Select every track in the album at once. Titles, artists, genres and durations are read
-    from the files themselves; you can correct anything before uploading.
+    @if (isLocked()) {
+      Select the tracks to add to <strong>{{ lockedAlbum()?.title }}</strong>. Titles, artists,
+      genres and durations are read from the files themselves; you can correct anything before uploading.
+    } @else {
+      Select every track in the album at once. Titles, artists, genres and durations are read
+      from the files themselves; you can correct anything before uploading.
+    }
   </p>
 
   <div class="bulk-upload__picker">
@@ -32,23 +37,29 @@
   }
 
   @if (hasTracks()) {
-    <div class="form-field">
-      <label for="bulkAlbumTitle">Album Title *</label>
-      <input
-        class="form-field__control"
-        type="text"
-        id="bulkAlbumTitle"
-        [value]="albumTitle()"
-        (input)="albumTitle.set($any($event.target).value)"
-      />
+    @if (isLocked()) {
       <p class="field-hint">
-        @if (albums().length > 0) {
-          An existing album with this exact name is reused; otherwise a new album is created.
-        } @else {
-          A new album will be created for these tracks.
-        }
+        Tracks will be added to <strong>{{ lockedAlbum()?.title }}</strong>.
       </p>
-    </div>
+    } @else {
+      <div class="form-field">
+        <label for="bulkAlbumTitle">Album Title *</label>
+        <input
+          class="form-field__control"
+          type="text"
+          id="bulkAlbumTitle"
+          [value]="albumTitle()"
+          (input)="albumTitle.set($any($event.target).value)"
+        />
+        <p class="field-hint">
+          @if (albums().length > 0) {
+            An existing album with this exact name is reused; otherwise a new album is created.
+          } @else {
+            A new album will be created for these tracks.
+          }
+        </p>
+      </div>
+    }
 
     <div class="bulk-upload__summary">
       <span>{{ tracks().length }} file{{ tracks().length === 1 ? '' : 's' }} selected</span>

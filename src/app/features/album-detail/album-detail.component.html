@@ -62,7 +62,27 @@
               @if (canEdit()) {
                 <button type="button" class="btn btn--secondary" (click)="openEditAlbum()">
                   <span class="material-icons" aria-hidden="true">edit</span>
-                  Edit Album
+                  Update Album Info
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--secondary"
+                  (click)="openAddSingleSong()"
+                  matTooltip="Add one song to this album"
+                  aria-label="Add one song to this album"
+                >
+                  <span class="material-icons" aria-hidden="true">music_note</span>
+                  Add Single Song
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--secondary"
+                  (click)="openBulkAddSongs()"
+                  matTooltip="Upload many songs to this album at once"
+                  aria-label="Upload many songs to this album at once"
+                >
+                  <span class="material-icons" aria-hidden="true">library_music</span>
+                  Bulk Upload
                 </button>
               }
             </div>
@@ -91,10 +111,12 @@
                 [albumTitle]="album.title"
                 [trackNumber]="track.trackNumber || i + 1"
                 [canEdit]="canEdit()"
+                [canDelete]="canEdit()"
                 [purchased]="isAlbumPurchased()"
                 (playRequested)="playAlbum(i)"
                 (addToPlaylist)="openPlaylistDialog()"
                 (editRequested)="openEditSong($event)"
+                (deleteRequested)="deleteSong($event)"
               />
             }
           }

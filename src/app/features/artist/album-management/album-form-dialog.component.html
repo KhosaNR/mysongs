@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ isEditMode ? 'Edit Album' : 'New Album' }}</h2>
+<h2 mat-dialog-title>{{ isEditMode ? 'Update Album Info' : 'New Album' }}</h2>
 
 <form [formRoot]="albumForm" (submit)="save()">
   <mat-dialog-content>
@@ -125,6 +125,64 @@
         </div>
       </div>
     </div>
+
+    @if (isEditMode) {
+      <div class="form-section album-songs">
+        <div class="album-songs__header">
+          <h4>Songs @if (songsCount() > 0) { ({{ songsCount() }}) }</h4>
+          <div class="album-songs__actions">
+            <button
+              type="button"
+              class="btn btn--secondary btn--sm"
+              (click)="requestAddSingleSong()"
+              matTooltip="Add one song to this album"
+              aria-label="Add one song to this album"
+            >
+              <mat-icon>music_note</mat-icon>
+              Add Single Song
+            </button>
+            <button
+              type="button"
+              class="btn btn--secondary btn--sm"
+              (click)="requestBulkUpload()"
+              matTooltip="Upload many songs to this album at once"
+              aria-label="Upload many songs to this album at once"
+            >
+              <mat-icon>library_music</mat-icon>
+              Bulk Upload
+            </button>
+          </div>
+        </div>
+        @if (isLoadingSongs()) {
+          <app-loading-spinner size="sm" label="Loading songs" />
+        } @else if (songs().length === 0) {
+          <app-empty-state
+            icon="music"
+            title="No songs yet"
+            description="Add the first track to this album"
+          />
+        } @else {
+          <ul class="album-songs__list">
+            @for (song of songs(); track song.songId) {
+              <li class="album-songs__row">
+                <span class="album-songs__track">{{ song.trackNumber ?? '–' }}</span>
+                <span class="album-songs__title">{{ song.title }}</span>
+                <span class="album-songs__duration">{{ formatDuration(song.duration) }}</span>
+                <button
+                  type="button"
+                  class="album-songs__remove"
+                  (click)="removeSong(song)"
+                  [matTooltip]="'Remove ' + song.title"
+                  [attr.aria-label]="'Remove ' + song.title + ' from this album'"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

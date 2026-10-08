@@ -57,6 +57,14 @@ export interface SongFormDialogData {
   readonly artistId?: string;
   /** Preferred song type for a newly created song (create mode only). */
   readonly defaultSongType?: 'album' | 'single';
+  /**
+   * Album a newly created song is pre-linked to (create mode only). Presets
+   * `songType: 'album'`, `albumId` and the next free `trackNumber` — used by
+   * the Add Songs chooser so the artist never picks the album by hand.
+   */
+  readonly defaultAlbumId?: string;
+  /** Next free track number suggested when `defaultAlbumId` is set. */
+  readonly defaultTrackNumber?: number;
 }
 
 /** Result emitted when the dialog closes. */
@@ -118,9 +126,9 @@ export class SongFormDialogComponent {
     producers: this.data.song?.producers ?? '',
     songType: this.data.song
       ? ((this.data.song.albumId ? 'album' : 'single') as SongType)
-      : ((this.data.defaultSongType ?? 'single') as SongType),
-    albumId: this.data.song?.albumId ?? '',
-    trackNumber: this.data.song?.trackNumber ?? 1,
+      : ((this.data.defaultAlbumId ? 'album' : (this.data.defaultSongType ?? 'single')) as SongType),
+    albumId: this.data.song?.albumId ?? this.data.defaultAlbumId ?? '',
+    trackNumber: this.data.song?.trackNumber ?? this.data.defaultTrackNumber ?? 1,
     duration: this.data.song?.duration ?? 0,
     genre: this.data.song?.genre ?? '',
     tags: (this.data.song?.tags ?? []).join(', '),

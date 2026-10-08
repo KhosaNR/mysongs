@@ -4,6 +4,10 @@
  * Owns the album Signal Forms model, cover-art upload, and the create/update
  * database writes. Closes with an `AlbumFormDialogResult` so the parent can
  * refresh its album grid and open the detail view for newly created albums.
+ *
+ * Follows the single-dialog rule: this dialog never opens another dialog. Add
+ * Songs actions close with an intent (`openAddSingle` / `openBulk`) and the
+ * parent page opens the song form or locked bulk uploader afterwards.
  */
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { FormRoot, FormField, form, required, min, validate } from '@angular/forms/signals';
@@ -19,8 +23,14 @@ import { AuthService } from '../../../core/services/auth.service';
 import { UploadService } from '../../../core/services/upload.service';
 import { toDateInputValue } from '../../../core/utils/firestore-date';
 import { Album, AlbumCredits } from '../../../shared/models/album.interface';
+import { Song } from '../../../shared/models/song.interface';
+import { formatDuration } from '../../../core/utils/format-duration';
 import { DEFAULT_PLATFORM_COLORS } from '../../../core/constants/theme.constants';
 import type { AlbumWithId } from './album-management.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
+import { where } from '@angular/fire/firestore';
 
 /**
  * Data passed into the dialog: the album being edited, or null to create.
@@ -35,11 +45,17 @@ export interface AlbumFormDialogData {
 }
 
 /**
- * Result emitted when the dialog closes.
+ * Result emitted when the dialog closes. Add-songs actions close with an
+ * intent flag so the parent can open the next dialog after this one closes —
+ * the single-dialog rule forbids opening a dialog from inside a dialog.
  */
 export interface AlbumFormDialogResult {
   readonly saved: boolean;
   readonly album?: AlbumWithId;
+  /** Parent should open the single-song form pre-linked to this album. */
+  readonly openAddSingle?: boolean;
+  /** Parent should open the bulk uploader locked to this album. */
+  readonly openBulk?: boolean;
 }
 
 @Component({
@@ -55,6 +71,9 @@ export interface AlbumFormDialogResult {
     MatInputModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
+    EmptyStateComponent,
+    LoadingSpinnerComponent,
   ],
   templateUrl: './album-form-dialog.component.html',
   styleUrl: './album-form-dialog.component.scss',
@@ -70,6 +89,11 @@ export class AlbumFormDialogComponent {
   /** Whether the dialog edits an existing album (false = create new). */
   readonly isEditMode = this.data.album !== null;
 
+  /** Songs filed under this album (edit mode only). */
+  readonly songs = signal<Song[]>([]);
+  readonly isLoadingSongs = signal(false);
+  readonly songsCount = computed(() => this.songs().length);
+
   /** Current upload progress (0-100) for cover art. */
   readonly uploadProgress = this.uploadService.uploadProgress;
 
@@ -78,6 +102,12 @@ export class AlbumFormDialogComponent {
   readonly error = signal<string | null>(null);
   readonly artworkPreview = signal<string | null>(this.data.album?.artworkUrl ?? null);
   private readonly artworkFile = signal<File | null>(null);
+
+  constructor() {
+    if (this.isEditMode) {
+      void this.loadSongs();
+    }
+  }
 
   readonly formData = signal({
     title: this.data.album?.title ?? '',
@@ -131,6 +161,77 @@ export class AlbumFormDialogComponent {
       };
       reader.readAsDataURL(input.files[0]);
     }
+  }
+
+  /**
+   * Loads the non-deleted songs filed under this album, ordered by track.
+   */
+  async loadSongs(): Promise<void> {
+    const album = this.data.album;
+    if (!album) return;
+    this.isLoadingSongs.set(true);
+    try {
+      const result = await this.dbService.getCollection<Song>('songs', {
+        constraints: [where('albumId', '==', album.id), where('isDeleted', '==', false)],
+      });
+      if (result.isSuccess()) {
+        const tracks = result
+          .getData()
+          .map((doc) => doc.data)
+          .sort((a, b) => (a.trackNumber ?? 0) - (b.trackNumber ?? 0));
+        this.songs.set(tracks);
+      } else {
+        this.error.set(result.getError());
+      }
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to load songs');
+    } finally {
+      this.isLoadingSongs.set(false);
+    }
+  }
+
+  /** Formats a track duration via the shared platform formatter. */
+  formatDuration(seconds?: number): string {
+    return formatDuration(seconds ?? 0);
+  }
+
+  /**
+   * Removes a song from this album (soft delete) after confirmation.
+   *
+   * @param song - The song to remove
+   */
+  async removeSong(song: Song): Promise<void> {
+    if (!confirm(`Remove "${song.title}" from this album? This can be undone.`)) return;
+    try {
+      const result = await this.dbService.softDelete('songs', song.songId);
+      if (result.isSuccess()) {
+        await this.loadSongs();
+      } else {
+        this.error.set(result.getError());
+      }
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to remove song');
+    }
+  }
+
+  /**
+   * Closes with an intent for the parent to open the single-song form. The
+   * single-dialog rule forbids opening it from inside this dialog.
+   */
+  requestAddSingleSong(): void {
+    const album = this.data.album;
+    if (!album) return;
+    this.dialogRef.close({ saved: false, album, openAddSingle: true });
+  }
+
+  /**
+   * Closes with an intent for the parent to open the locked bulk uploader.
+   * The single-dialog rule forbids opening it from inside this dialog.
+   */
+  requestBulkUpload(): void {
+    const album = this.data.album;
+    if (!album) return;
+    this.dialogRef.close({ saved: false, album, openBulk: true });
   }
 
   /**

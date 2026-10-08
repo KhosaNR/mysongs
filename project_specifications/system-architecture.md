@@ -69,12 +69,17 @@ src/app/
 ### 4. Telemetry Logging Standards
 * Implement structured TS Doc XML comment structures on all core architecture files to document parameters, outcomes, and logical boundaries.
 
-### 5. Commit Message Standards
+### 5. Dialog Discipline (Single-Dialog Rule)
+* Only one `MatDialog` may be open at any time. A dialog component must never call `dialog.open()` — it closes with an intent result (e.g. `{ saved, openAddSingle, openBulk }`) and the parent page opens the next dialog after `afterClosed()`.
+* Intermediate chooser dialogs are prohibited where two explicit buttons suffice — offer `Add Single Song` and `Bulk Upload` side by side instead of stacking a picker on top of an editor.
+* This applies to every authoring flow (album, song, bulk upload, collection, artist).
+
+### 6. Commit Message Standards
 * **Write commit messages as plain English**, not as prefixed tags. The reader should understand the change without opening the diff.
   * Good: "Fixed duration to display in HH:MM:SS from just showing hours."
   * Bad: `fix(duration): update format util` — the prefix carries no meaning and the subject says nothing about the effect.
 
-### 6. Mandatory Regression Gate (Always-On)
+### 7. Mandatory Regression Gate (Always-On)
 * Before any implementation, classify the defect as **regression vs latent**: run `git status --short`, `git log --oneline -15 -- <touched areas>`, and `git diff <base>..HEAD --stat` to identify which recent task introduced or exposed it.
 * Re-open every adjacent flow the touched files serve (album create/edit, song create/edit, bulk-upload open/pick/submit, post-create navigation). Backdrop-only dialogs and `NG0950` required-input errors are the known signatures of a dialog-wiring regression.
 * After implementation: `test:ci` + `lint` + production `build` must all be green, plus one regression test pinning the fixed behaviour. No task is complete with a red or skipped gate.

@@ -19,6 +19,7 @@ import { ErrorBannerComponent } from '../../shared/components/error-banner/error
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { TrackRowComponent } from '../../shared/components/track-row/track-row.component';
 import { SearchInputComponent } from '../../shared/components/search-input/search-input.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AddToPlaylistDialogComponent } from '../playlists/add-to-playlist-dialog.component';
 import {
   PurchaseDialogComponent,
@@ -34,6 +35,11 @@ import {
   SongFormDialogResult,
   SongWithId,
 } from '../../shared/components/song-form-dialog/song-form-dialog.component';
+import {
+  BulkUploadDialogComponent,
+  BulkUploadResult,
+  type BulkUploadDialogData,
+} from '../artist-detail/bulk-upload-dialog.component';
 
 /** Album with its Firestore document ID. */
 interface AlbumWithId extends Album {
@@ -57,6 +63,7 @@ interface AlbumWithId extends Album {
     EmptyStateComponent,
     TrackRowComponent,
     SearchInputComponent,
+    MatTooltipModule,
     AddToPlaylistDialogComponent,
     PurchaseDialogComponent,
   ],
@@ -383,7 +390,9 @@ export class AlbumDetailComponent {
   }
 
   /**
-   * Opens the album edit dialog (owner artist or admin only).
+   * Opens the Update Album Info dialog (owner artist or admin only). Handles
+   * add-songs intents by opening the next dialog only after this one closes,
+   * then reopening the editor so no work is lost.
    */
   openEditAlbum(): void {
     const album = this.album();
@@ -398,7 +407,11 @@ export class AlbumDetailComponent {
       data: { album },
     });
     dialogRef.afterClosed().subscribe((result) => {
-      if (result?.saved) {
+      if (result?.openAddSingle) {
+        this.openAddSingleSong(true);
+      } else if (result?.openBulk) {
+        this.openBulkAddSongs(true);
+      } else if (result?.saved) {
         void this.reloadAlbum();
       }
     });
@@ -425,6 +438,102 @@ export class AlbumDetailComponent {
     dialogRef.afterClosed().subscribe((result) => {
       if (result?.saved) {
         void this.reloadAlbum();
+      }
+    });
+  }
+
+  /**
+   * Soft-deletes a song from this album after confirmation (owner artist or
+   * admin only).
+   *
+   * @param song - The song to remove
+   */
+  async deleteSong(song: Song): Promise<void> {
+    if (!this.canEdit()) return;
+    if (!confirm(`Remove "${song.title}" from this album? This can be undone.`)) return;
+    try {
+      const result = await this.dbService.softDelete('songs', song.songId);
+      if (result.isSuccess()) {
+        await this.reloadAlbum();
+      } else {
+        this.error.set(result.getError());
+      }
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to remove song');
+    }
+  }
+
+  /**
+   * Opens the shared song form pre-linked to this album with the next free
+   * track number suggested. Opened directly — never stacked on another dialog.
+   *
+   * @param reopenEditor - Reopen Update Album Info after the song saves
+   */
+  openAddSingleSong(reopenEditor = false): void {
+    const album = this.album();
+    if (!album || !this.canEdit()) return;
+    const nextTrack = this.tracks().reduce((max, track) => Math.max(max, track.trackNumber ?? 0), 0) + 1;
+    const dialogRef = this.dialog.open<
+      SongFormDialogComponent,
+      {
+        song: SongWithId | null;
+        albums: AlbumWithId[];
+        artistId?: string;
+        defaultAlbumId?: string;
+        defaultTrackNumber?: number;
+      },
+      SongFormDialogResult
+    >(SongFormDialogComponent, {
+      width: '680px',
+      maxWidth: '95vw',
+      data: {
+        song: null,
+        albums: [album],
+        artistId: album.artistId,
+        defaultAlbumId: album.id,
+        defaultTrackNumber: nextTrack,
+      },
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.saved) {
+        void this.reloadAlbum().then(() => {
+          if (reopenEditor) {
+            this.openEditAlbum();
+          }
+        });
+      } else if (reopenEditor) {
+        this.openEditAlbum();
+      }
+    });
+  }
+
+  /**
+   * Opens the bulk uploader locked to this album. Opened directly — never
+   * stacked on another dialog.
+   *
+   * @param reopenEditor - Reopen Update Album Info after the batch finishes
+   */
+  openBulkAddSongs(reopenEditor = false): void {
+    const album = this.album();
+    if (!album || !this.canEdit()) return;
+    const dialogRef = this.dialog.open<
+      BulkUploadDialogComponent,
+      BulkUploadDialogData,
+      BulkUploadResult
+    >(BulkUploadDialogComponent, {
+      width: '680px',
+      maxWidth: '95vw',
+      data: { albums: [], lockedAlbum: { id: album.id, title: album.title } },
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.saved) {
+        void this.reloadAlbum().then(() => {
+          if (reopenEditor) {
+            this.openEditAlbum();
+          }
+        });
+      } else if (reopenEditor) {
+        this.openEditAlbum();
       }
     });
   }

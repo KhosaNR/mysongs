@@ -87,10 +87,24 @@ src/app/
 * **Bodies are expected for anything non-obvious.** A body records the reasoning the diff cannot show: what a bug actually was, which approach was rejected and why, what invariant is being protected. There is no line limit — write as much as the change warrants.
 * **Keep technical detail in the body, not the subject.** The subject orients the reader; the body serves whoever next has to change the same code.
 * **One logical change per commit.** A commit that both fixes a bug and adds a feature is two commits, and bug fixes for separate bugs stay separate even when they touch the same file. The sole routine exception is a specification note that only ever lands as a silent passenger inside a product commit, never as its own commit and never mentioned in the message.
-* **No process commentary in commits.** Messages describe the product change in plain human voice. Never reference agent workflow, prompts, tasks, gates, test/lint/build machinery, commit hashes, or model behaviour — in subjects, bodies, or code comments.
 * **Ask before any commit, push, or merge.** Present the exact message and file list first and proceed only on explicit approval. Never commit, push, force-push, or promote branches autonomously.
 * **Record corrected diagnoses rather than erasing them.** When a fix reveals that an earlier root-cause analysis was wrong, say so in the body. A wrong explanation preserved in history is more dangerous than the wasted effort.
 * Bodies are written as prose, not as bullet fragments or key/value blocks.
+
+### 8. Branching, Pull Requests & Review
+* **One branch per task or sub-task.** Cut every task/sub-task from `dev` on its own branch, named `<type>/<slug>` — `feature/…`, `fix/…`, `chore/…`, `docs/…` — reflecting the task. Product work is never committed directly to `dev`, `qa`, or `main`.
+* **`dev` is reached only by pull request.** Open a PR from the task branch back into `dev`. No direct pushes to integration branches.
+* **Merge gate.** A PR merges only when (a) the `build-and-test` CI check is green and (b) a review pass is complete. This mirrors the commit gate: one logical change per PR, kept small.
+* **Review checklist (applies to self-review and to any teammate's or AI-generated diff):**
+  * Does the diff solve the stated task — and nothing extra smuggled in?
+  * No `any`; errors are thrown cleanly, never swallowed; service actions wrapped in try/catch (§1).
+  * Regression signatures checked (§7): backdrop-only dialogs and `NG0950` required-input errors.
+  * A defect fix ships with one regression test pinning the fixed behaviour (§7).
+  * Comments explain *why*, not *what*; public APIs carry TS Doc (§4).
+  * Memory bank refreshed (`development-status.md`, `working-notes.md`).
+* **Solo context.** GitHub branch protection cannot require your own approval on your own PR, so the human "review" is a disciplined self-review against the checklist above (or a `review-pr` pass). Protection still mechanically enforces "PR required" + "CI green" before merge.
+* **PR status notifications.** GitHub notifies the repo owner natively on every PR lifecycle event — opened, approved, changes requested (rejected), merged/closed, and new commits — via email, the web inbox, and GitHub Mobile push. No custom workflow is required; watch the repo with "All Activity" and enable Email + On GitHub delivery so nothing is missed.
+* **Exception — silent specification passengers.** A specification note that only ever lands inside a product commit (§6) rides along on that commit's branch; it does not warrant its own branch.
 
 ## Cloudflare Workers Architecture
 
@@ -336,6 +350,7 @@ export interface Track {
 * Public catalogue surfaces **MUST NOT silently truncate**. A `slice()` cap on albums or songs is permitted only when the surface renders a count plus a "see all" / "show more" affordance that reveals the remainder.
 * Grids sized with `auto-fill`/`auto-fit` scroll naturally; a cap exists to bound initial render, not to hide content.
 * Applies to `explore.component.ts` (`recentAlbums`, `recentSongs`) and the `album-detail` "More from {artist}" rail.
+* **Albums with zero tracks are hidden from public catalogue surfaces** — Explore, Search, the artist page, and a direct `/album/:albumId` visit (which renders the standard "Album not found" empty state instead of the album). The owning artist always sees their own empty albums on Explore and Search; the owning artist and admins see every empty album on the artist catalogue and album pages. Admins get no exception on Explore/Search. Management dialogs (song form album picker, bulk upload, Update Album Info) always list empty albums — an empty album must remain fileable. The single source of truth is `core/utils/album-visibility.ts`.
 
 ## Playlist Integrity
 

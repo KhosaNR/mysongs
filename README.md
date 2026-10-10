@@ -24,7 +24,7 @@ This project uses a three-branch workflow where GitHub Actions handles builds an
 
 ### Release flow
 
-1. Create a feature branch off `dev` and open a pull request back into `dev`.
+1. Cut a task branch off `dev` (`feature/…` / `fix/…` / `chore/…` / `docs/…`), open a pull request back into `dev`, complete the self-review checklist in `.github/pull_request_template.md`, and merge once CI is green. One branch per task/sub-task; never push product work straight to `dev`.
 2. Merge `dev` into `qa` (or open a pull request) — the QA build deploys automatically to the QA Firebase project.
 3. Merge `qa` into `main` (or open a pull request) — the production build deploys automatically to the Production Firebase project.
 
